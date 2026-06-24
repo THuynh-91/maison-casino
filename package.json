@@ -1,10 +1,16 @@
 {
-  "name": "european-roulette-table",
-  "version": "1.0.0",
-  "description": "Interactive single-zero European roulette table (HTML/CSS/JS) with a tested payout engine.",
+  "name": "casino-platform",
+  "version": "2.0.0",
+  "description": "Multiplayer casino platform (Node + Express + Socket.io) with roulette, blackjack, slots, plinko, and poker. Includes a tested legacy single-zero roulette payout engine.",
   "private": true,
   "type": "commonjs",
   "scripts": {
+    "start": "node backend/server.js",
+    "dev": "node backend/server.js",
     "test": "node --test"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
   }
 }

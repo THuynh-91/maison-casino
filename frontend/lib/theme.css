@@ -1,0 +1,140 @@
+/* ============================================================================
+ * Casino design system — warm, editorial "paper" aesthetic with a coral accent.
+ * Inspiration spec only; uses free Google fonts (Fraunces + Inter). Shared by
+ * the lobby and every game/admin screen. Single source of truth for tokens.
+ * ========================================================================== */
+
+:root {
+  /* Brand ramps */
+  --c-cream:#faf9f5; --c-ivory:#f5f3ec; --c-sand:#efece2;
+  --c-light-gray:#e8e6dc; --c-mid-gray:#b0aea5; --c-warm-gray-2:#8a887f;
+  --c-ink:#141413; --c-ink-soft:#2b2a27;
+  --c-coral:#d97757; --c-coral-hover:#c96442; --c-coral-soft:#f3d9cd;
+  --c-blue:#6a9bcc; --c-green:#788c5d; --c-amber:#c98a3c; --c-red:#b3492f;
+
+  /* Semantic (light) */
+  --bg:var(--c-cream); --surface:#ffffff; --surface-2:var(--c-ivory);
+  --text:var(--c-ink); --text-muted:var(--c-warm-gray-2); --text-subtle:var(--c-mid-gray);
+  --accent:var(--c-coral); --accent-hover:var(--c-coral-hover); --accent-contrast:#ffffff;
+  --border:var(--c-light-gray); --border-strong:#d9d6ca; --ring:rgba(217,119,87,.45);
+  --success:var(--c-green); --warn:var(--c-amber); --error:var(--c-red);
+
+  /* Casino-specific felt + chips (warm, premium, not neon) */
+  --felt:#3d6b54; --felt-dark:#2f5443; --felt-line:rgba(245,243,236,.5);
+  --chip-1:#e8e6dc; --chip-5:#c96442; --chip-25:#788c5d; --chip-100:#2b2a27; --chip-500:#6a9bcc;
+  --gold:#c98a3c;
+
+  /* Radius / spacing / shadow */
+  --r-xs:4px; --r-sm:8px; --r-md:12px; --r-lg:16px; --r-xl:24px; --r-pill:999px;
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px; --sp-7:48px; --sp-8:64px; --sp-9:96px;
+  --shadow-xs:0 1px 2px rgba(20,20,19,.04);
+  --shadow-sm:0 1px 3px rgba(20,20,19,.06),0 1px 2px rgba(20,20,19,.04);
+  --shadow-md:0 4px 12px rgba(20,20,19,.07),0 2px 4px rgba(20,20,19,.05);
+  --shadow-lg:0 12px 32px rgba(20,20,19,.10),0 4px 8px rgba(20,20,19,.06);
+
+  /* Motion */
+  --ease-out:cubic-bezier(.2,.7,.3,1); --ease-inout:cubic-bezier(.65,0,.35,1); --ease-soft:cubic-bezier(.33,1,.68,1);
+  --dur-fast:120ms; --dur-base:200ms; --dur-slow:320ms; --dur-page:480ms;
+
+  /* Type */
+  --font-serif:"Fraunces","Newsreader",Georgia,"Times New Roman",serif;
+  --font-sans:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+
+:root[data-theme="dark"] {
+  --bg:#1f1e1b; --surface:#262521; --surface-2:#2f2e29;
+  --text:#f5f3ec; --text-muted:#b0aea5; --text-subtle:#8a887f;
+  --accent:#e08a6b; --accent-hover:#ec9d80; --accent-contrast:#1f1e1b;
+  --border:#38362f; --border-strong:#4a473f; --ring:rgba(224,138,107,.5);
+  --success:#8ba06d; --warn:#d6a259; --error:#d4684c;
+  --felt:#2c4a3c; --felt-dark:#22392e; --felt-line:rgba(245,243,236,.4);
+  --shadow-xs:0 1px 2px rgba(0,0,0,.35); --shadow-sm:0 1px 3px rgba(0,0,0,.45);
+  --shadow-md:0 4px 14px rgba(0,0,0,.45); --shadow-lg:0 14px 36px rgba(0,0,0,.55);
+}
+
+* { box-sizing:border-box; }
+html, body { margin:0; }
+body {
+  font-family:var(--font-sans); color:var(--text); background:var(--bg);
+  font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased; letter-spacing:-0.003em;
+  min-height:100vh; transition:background var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out);
+}
+h1,h2,h3,.display { font-family:var(--font-serif); font-weight:500; line-height:1.12; letter-spacing:-0.02em; margin:0 0 var(--sp-3); }
+.display-xl { font-size:clamp(2.5rem,5vw,3.75rem); }
+h1 { font-size:clamp(2rem,4vw,2.75rem); }
+h2 { font-size:clamp(1.5rem,3vw,2rem); }
+h3 { font-size:1.4rem; line-height:1.25; }
+h4 { font-size:1.15rem; font-family:var(--font-sans); font-weight:600; margin:0 0 var(--sp-2); }
+.lead { font-size:1.2rem; line-height:1.5; color:var(--text-muted); }
+small,.caption { font-size:.85rem; color:var(--text-muted); }
+code,kbd { font-family:var(--font-mono); font-size:.9em; }
+a { color:var(--accent); }
+
+/* ---- Buttons ---- */
+.btn {
+  font-family:var(--font-sans); font-weight:500; font-size:.95rem;
+  display:inline-flex; align-items:center; justify-content:center; gap:var(--sp-2);
+  padding:10px 18px; border-radius:var(--r-md); border:1px solid transparent;
+  cursor:pointer; user-select:none; background:var(--surface); color:var(--text);
+  transition:background-color var(--dur-base) var(--ease-out), transform var(--dur-fast) var(--ease-out),
+             box-shadow var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out);
+}
+.btn:active { transform:translateY(1px) scale(.99); }
+.btn:focus-visible { outline:none; box-shadow:0 0 0 3px var(--ring); }
+.btn:disabled { opacity:.5; cursor:not-allowed; }
+.btn-primary { background:var(--accent); color:var(--accent-contrast); }
+.btn-primary:hover:not(:disabled) { background:var(--accent-hover); box-shadow:var(--shadow-sm); }
+.btn-secondary { background:var(--surface); color:var(--text); border-color:var(--border-strong); }
+.btn-secondary:hover:not(:disabled) { background:var(--surface-2); border-color:var(--c-mid-gray); }
+.btn-ghost { background:transparent; color:var(--text); }
+.btn-ghost:hover:not(:disabled) { background:var(--surface-2); }
+
+/* ---- Card ---- */
+.card {
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg);
+  padding:var(--sp-6); box-shadow:var(--shadow-xs);
+  transition:transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out);
+}
+.card--interactive { cursor:pointer; }
+.card--interactive:hover { transform:translateY(-3px); box-shadow:var(--shadow-md); border-color:var(--border-strong); }
+
+/* ---- Input ---- */
+.input {
+  width:100%; font:inherit; color:var(--text); background:var(--surface);
+  border:1px solid var(--border-strong); border-radius:var(--r-md); padding:11px 14px;
+  transition:border-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+}
+.input::placeholder { color:var(--text-subtle); }
+.input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--ring); }
+
+/* ---- Overlay / modal ---- */
+.overlay { position:fixed; inset:0; background:rgba(20,20,19,.38); backdrop-filter:blur(2px);
+  animation:fade-in var(--dur-base) var(--ease-out) both; display:flex; align-items:center; justify-content:center; z-index:100; }
+.modal { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-xl);
+  padding:var(--sp-7); box-shadow:var(--shadow-lg); max-width:520px; width:calc(100% - 2rem);
+  animation:modal-in var(--dur-slow) var(--ease-soft) both; }
+@keyframes modal-in { from{opacity:0; transform:translateY(12px) scale(.98)} to{opacity:1; transform:translateY(0) scale(1)} }
+
+/* ---- Nav ---- */
+.nav { display:flex; align-items:center; gap:var(--sp-5); padding:var(--sp-3) var(--sp-6);
+  background:color-mix(in srgb, var(--bg) 80%, transparent); backdrop-filter:saturate(160%) blur(10px);
+  border-bottom:1px solid var(--border); position:sticky; top:0; z-index:50; }
+
+/* ---- Pills / badges ---- */
+.pill { display:inline-flex; align-items:center; gap:6px; padding:4px 12px; border-radius:var(--r-pill);
+  background:var(--surface-2); border:1px solid var(--border); font-size:.85rem; font-weight:500; }
+.pill.accent { background:var(--c-coral-soft); border-color:transparent; color:var(--c-coral-hover); }
+
+/* ---- Motion primitives ---- */
+@keyframes fade-in { from{opacity:0} to{opacity:1} }
+@keyframes rise-in { from{opacity:0; transform:translateY(16px)} to{opacity:1; transform:translateY(0)} }
+@keyframes shimmer { from{background-position:-200% 0} to{background-position:200% 0} }
+.rise-in { animation:rise-in var(--dur-slow) var(--ease-soft) both; }
+.skeleton { border-radius:var(--r-sm); background:linear-gradient(90deg,var(--surface-2) 25%,var(--c-light-gray) 37%,var(--surface-2) 63%);
+  background-size:200% 100%; animation:shimmer 1.4s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration:.001ms !important; animation-iteration-count:1 !important;
+    transition-duration:.001ms !important; scroll-behavior:auto !important; }
+}
