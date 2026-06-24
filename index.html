@@ -1,20 +1,67 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>American Roulette</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>European Roulette Table</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="container">
-    <h1>American Roulette</h1>
-    <div id="wheel-container">
-      <canvas id="roulette-wheel" width="500" height="500"></canvas>
-      <button id="spin-button">Spin Wheel</button>
+  <header class="topbar">
+    <h1>European Roulette</h1>
+    <div class="bank">
+      <div class="bank-item">
+        <span class="label">Balance</span>
+        <span id="balance" class="value">$1000</span>
+      </div>
+      <div class="bank-item">
+        <span class="label">On Table</span>
+        <span id="staked" class="value">$0</span>
+      </div>
+      <div class="bank-item">
+        <span class="label">Last Win</span>
+        <span id="lastwin" class="value">$0</span>
+      </div>
     </div>
-    <div id="results"></div>
-  </div>
+  </header>
+
+  <main class="layout">
+    <section class="wheel-side">
+      <div id="wheel-container">
+        <canvas id="roulette-wheel" width="420" height="420"></canvas>
+      </div>
+      <div id="result-banner" class="result-banner hidden">
+        <span id="result-number">0</span>
+      </div>
+      <div id="history" class="history"></div>
+    </section>
+
+    <section class="table-side">
+      <div class="chips" id="chips">
+        <span class="chips-label">Chip:</span>
+        <!-- chip buttons injected by JS -->
+      </div>
+
+      <div class="felt">
+        <div class="bet-grid" id="bet-grid">
+          <!-- 0, number grid, columns injected by JS -->
+        </div>
+        <div class="outside" id="outside">
+          <!-- dozens + even-money bets injected by JS -->
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="spin-button" class="btn primary">SPIN</button>
+        <button id="undo-button" class="btn">Undo</button>
+        <button id="clear-button" class="btn">Clear Bets</button>
+        <button id="rebet-button" class="btn">Rebet</button>
+      </div>
+      <p id="message" class="message"></p>
+    </section>
+  </main>
+
+  <script src="roulette-core.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
