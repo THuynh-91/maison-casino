@@ -1,81 +1,70 @@
-# European Roulette Table
+# Maison Roulette — Multiplayer Casino
 
-A self-contained, interactive single-zero (European, 0-36) roulette table that runs
-entirely in the browser — no build step, no server, no dependencies.
+A self-hosted, real-time multiplayer casino. Create or join a room by code, see other
+players and their chip balances live, and play together: **Roulette, Blackjack, Slots,
+Plinko**, and **Texas Hold'em Poker**. Node + Express + Socket.io backend, vanilla-JS
+frontend in a warm, editorial design language with drag-and-drop chips.
 
-![type: web app](https://img.shields.io/badge/stack-HTML%2FCSS%2FJS-blue)
-
-## How to play / open it
-
-Just open `index.html` in any modern browser:
-
-```bash
-# from the repo folder
-start index.html        # Windows
-# or simply double-click index.html in the file explorer
+```
+backend/    Express + Socket.io server, room/money model, game engines
+frontend/   Single-page web client (lobby + room + per-game views)
+tests/      node --test suites for every game engine
+legacy/     the original standalone single-player roulette (served at /legacy)
 ```
 
-(No web server is required — the page and its scripts are local files.)
+## Run it
 
-### Gameplay
-1. Pick a **chip** value (1 / 5 / 25 / 100 / 500).
-2. **Click cells** on the betting layout to place chips:
-   - Numbers `0-36` (straight-up bets), with correct red/black coloring.
-   - Columns (`2:1`), dozens (`1st/2nd/3rd 12`).
-   - Even-money bets: `RED`, `BLACK`, `ODD`, `EVEN`, `1-18`, `19-36`.
-3. Press **SPIN**. The wheel animates (real European pocket order) and the ball settles
-   on the result.
-4. Winnings are paid automatically and your **Balance** updates.
-5. **Undo** removes the last chip, **Clear Bets** returns all staked chips, **Rebet**
-   repeats your previous round's bets.
+```bash
+npm install          # express + socket.io
+npm start            # serves the casino on http://localhost:4900
+# or pick a port:  PORT=4900 node backend/server.js
+```
 
-Balance starts at **$1000** and persists in `localStorage`. If you bust, you're topped
-back up to $1000.
+Open **http://localhost:4900** in your browser. To play with friends on your LAN, share
+your machine's IP + port; everyone joins the same room with the room code.
 
-> The UI exposes the inside bets that are clickable as single cells (straight-up) plus
-> all outside bets. The payout **engine** (`roulette-core.js`) fully supports split,
-> street, corner, and six-line bets too — these are validated by the tests.
+`npm run dev` is an alias for `npm start` (no build step — the frontend is static files).
 
-## Payout table (X-to-1)
+## How to play
 
-| Bet | Covers | Payout |
-|-----|--------|--------|
-| Straight-up | 1 number | 35:1 |
-| Split | 2 numbers | 17:1 |
-| Street | 3 numbers | 11:1 |
-| Corner | 4 numbers | 8:1 |
-| Line (six-line) | 6 numbers | 5:1 |
-| Column | 12 numbers | 2:1 |
-| Dozen | 12 numbers | 2:1 |
-| Red / Black | 18 numbers | 1:1 |
-| Odd / Even | 18 numbers | 1:1 |
-| 1-18 / 19-36 | 18 numbers | 1:1 |
+1. On the lobby, enter a name and **Create Room** (or **Join** with a 5-char code).
+2. Share the room **code** (copy button in the top nav) with friends.
+3. Pick a table from the game picker. Everyone in the room shares the table.
+4. Each player starts with **1000 chips**, persisted server-side per room (and your
+   identity persists on your device via `localStorage`, so refreshing keeps your seat).
 
-A win returns `stake + stake * payout`. **Zero (0)** loses all outside/even-money bets
-(standard European rule; no _la partage_ implemented).
+### Games
+- **Roulette** — shared single-zero European wheel. Drag chips (or click) onto numbers,
+  splits, streets, corners, lines, columns, dozens, and even-money areas. Anyone can
+  SPIN; everyone sees the same result land and is paid automatically.
+- **Blackjack** — up to 5 seats vs the dealer. Bet, deal, hit/stand/double/split.
+  Blackjack pays 3:2, dealer stands on soft 17.
+- **Slots** — 5×3 reels, 5 paylines, weighted RNG, wild substitution (~0.90 RTP).
+- **Plinko** — drop a ball through a 12-row peg board into a multiplier slot; low/medium/
+  high risk profiles. The server decides the path; the client animates exactly that path.
+- **Poker** — multiplayer No-Limit Texas Hold'em with blinds, betting rounds, and a pot.
 
-## Wheel
+## Admin
 
-European single-zero wheel only (0-36). The animated wheel uses the real European pocket
-order: `0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24,
-16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26`. American double-zero is
-**not** implemented.
-
-## Files
-
-- `index.html` – page markup
-- `styles.css` – table / wheel / chip styling
-- `script.js` – UI: layout generation, chip placement, wheel render + animation, payouts
-- `roulette-core.js` – pure, testable game logic (wheel data, colors, bet resolution, payouts)
-- `tests/roulette.test.mjs` – payout & bet-resolution tests
+Click **Admin**, log in with the admin password (default **`letmein`** — set the
+`ADMIN_PASSWORD` env var to change it; this is a demo gate, not a real secret). Admins can
+grant chips, set balances, kick players, top up everyone, and switch the room's table.
 
 ## Tests
-
-The math (payouts, color sets, zero handling, multi-bet resolution) is covered by the
-Node built-in test runner — no install needed:
 
 ```bash
 node --test
 ```
 
-All tests should pass (17 tests).
+Covers the pure game logic for every engine — roulette payouts & bet adjacency, blackjack
+hand values / settle / 3:2, slots paylines & RTP fairness, plinko binomial distribution &
+house edge, and poker hand evaluation & showdown.
+
+## Architecture notes
+
+- All money and game state is **server-authoritative**; clients never mutate balances and
+  every socket payload is validated. Game engines implement a small contract
+  (`backend/games/engine-contract.md`) and are registered in `backend/games/registry.js`,
+  so new games drop in without touching the server.
+- The frontend game views self-register on `window.CasinoGames[gameId]` with
+  `{ mount, update, unmount }`, driven by pushed `room:state`.
