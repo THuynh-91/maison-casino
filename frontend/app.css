@@ -64,7 +64,7 @@
  * ROOM SHELL
  * ========================================================================== */
 .room { min-height: 100vh; display: flex; flex-direction: column; }
-.room__nav { gap: var(--sp-3); }
+.room__nav { gap: var(--sp-3); flex-wrap: wrap; row-gap: var(--sp-2); }
 .nav__brand { display: flex; align-items: center; gap: var(--sp-2); }
 .nav__logo {
   display: inline-flex; align-items: center; justify-content: center;
@@ -143,4 +143,12 @@
   .room__sidebar { position: static; }
   .game-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
   .admin__row { grid-template-columns: 1fr; }
+}
+
+/* Phones: let the room nav wrap and shrink padding so it never overflows. */
+@media (max-width: 560px) {
+  .room__nav { padding: var(--sp-2) var(--sp-3); gap: var(--sp-2); }
+  .nav__spacer { flex-basis: 100%; order: 5; height: 0; }
+  .room__nav .pill { font-size: .8rem; padding: 3px 9px; }
+  .room__nav .btn { padding: 7px 12px; font-size: .85rem; }
 }
