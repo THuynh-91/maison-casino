@@ -63,7 +63,11 @@ body {
   border-radius: 50%;
   box-shadow: 0 0 0 8px #3a2a12, 0 0 0 14px var(--gold), 0 18px 40px rgba(0,0,0,.6);
   background: #111;
+  display: block;
+  max-width: 100%;
+  height: auto;
 }
+#wheel-container { max-width: 100%; }
 .result-banner {
   display: flex; align-items: center; justify-content: center;
   width: 90px; height: 90px; border-radius: 50%;
@@ -226,4 +230,22 @@ body {
   .layout { padding: 14px; gap: 18px; }
   .btn.primary { width: 100%; }
   .controls { width: 100%; }
+}
+
+/* Narrow phones: shrink the betting grid so it never overflows the screen. */
+@media (max-width: 460px) {
+  .layout { padding: 10px; }
+  .felt { padding: 6px; }
+  .bet-grid {
+    grid-template-columns: 26px repeat(12, 1fr) 30px;
+    grid-template-rows: repeat(3, 40px);
+    gap: 2px;
+  }
+  .cell { font-size: 11px; }
+  .cell.zero { font-size: 14px; }
+  .cell.col-bet { font-size: 10px; }
+  .outside { gap: 2px; }
+  .outside .cell { height: 36px; font-size: 11px; }
+  .bet-chip { width: 20px; height: 20px; font-size: 9px; }
+  .chip { width: 42px; height: 42px; }
 }

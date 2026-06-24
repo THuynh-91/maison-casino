@@ -531,27 +531,35 @@
     if (delta < 0) delta += 2 * Math.PI; // always move forward (clockwise)
     const wheelEnd = wheelStart + wheelRevs * 2 * Math.PI + delta;
 
-    // --- Ball motion: orbits OPPOSITE direction (negative/counter-clockwise),
-    //     faster, then spirals inward and drops into the pocket. ---
-    const ballStart = ballAngle;
-    // The ball should END exactly at the pocket's screen angle. Since the pocket
-    // ends at the top (-PI/2), the ball settles there too — but we drive it by the
-    // pocket's screen position throughout the settle so it visibly sits in-pocket.
-    const ballRevs = 9; // counter-clockwise revolutions (negative direction)
-    // Land target measured against the FINAL pocket position (top). Add extra
-    // negative turns so direction is opposite the wheel.
-    const ballSettleAngle = -Math.PI / 2; // top, where pocket idx will be
-    let ballRaw = ballSettleAngle - ballStart;
-    // normalize into (-2PI, 0] so motion is counter-clockwise, then add full revs
-    ballRaw = ((ballRaw % (2 * Math.PI)) - 2 * Math.PI) % (2 * Math.PI);
-    const ballEnd = ballStart - ballRevs * 2 * Math.PI + ballRaw;
-
+    const duration = 6000;          // ~6s spin
+    const spiralStart = 0.55;       // when the ball begins spiraling inward
+    const dropStart = 0.82;         // when the ball is captured by the pocket
     const startRadius = RIM_RADIUS;
     ballRadius = startRadius;
 
-    const duration = 6000;          // ~6s spin
-    const spiralStart = 0.55;       // when the ball begins spiraling inward
-    const dropStart = 0.82;         // when the ball drops onto the pocket ring
+    // --- Ball motion: orbits OPPOSITE direction (counter-clockwise), faster,
+    //     then spirals inward and is CAPTURED by pocket idx at `dropStart`.
+    //
+    // The handoff at `dropStart` must be seamless: the free orbit has to arrive
+    // exactly at the pocket's screen position at that instant, so the ball never
+    // teleports. We compute where pocket idx will be on screen at p=dropStart
+    // (the wheel has completed easeOutCubic(dropStart) of its travel by then),
+    // then solve for a ball end-angle that lands there going counter-clockwise
+    // with several full revolutions. After capture the ball simply tracks the
+    // live pocket angle (which equals that same value at the boundary). ---
+    const ballStart = ballAngle;
+    const wheelAtDrop = wheelStart + (wheelEnd - wheelStart) * easeOutCubic(dropStart);
+    const pocketAngleAtDrop = idx * seg - Math.PI / 2 + wheelAtDrop; // pocketScreenAngle at drop
+    const ballRevs = 9; // counter-clockwise revolutions (negative direction)
+    // Total signed travel from ballStart to the capture angle, forced negative
+    // (counter-clockwise) and padded with whole revolutions.
+    let ballRaw = (pocketAngleAtDrop - ballStart) % (2 * Math.PI);
+    // bring into (-2PI, 0] so the short way is counter-clockwise
+    ballRaw = ((ballRaw % (2 * Math.PI)) - 2 * Math.PI) % (2 * Math.PI);
+    const ballCaptureAngle = ballStart - ballRevs * 2 * Math.PI + ballRaw;
+    // Fraction of the ease curve consumed by the time we reach the capture point.
+    const eAtDrop = easeOutCubic(dropStart);
+
     const t0 = performance.now();
 
     function frame(now) {
@@ -562,22 +570,28 @@
       wheelAngle = wheelStart + (wheelEnd - wheelStart) * e;
 
       if (p < dropStart) {
-        // Phase 1+2: ball orbits freely; radius shrinks (spiral) after spiralStart.
-        ballAngle = ballStart + (ballEnd - ballStart) * e;
+        // Phase 1+2: ball orbits freely (counter-clockwise) and spirals inward.
+        // Drive the angle by the same ease curve but RE-SCALED so it reaches the
+        // capture angle exactly at p=dropStart (e == eAtDrop), guaranteeing a
+        // continuous handoff into the capture phase below.
+        const eFrac = e / eAtDrop; // 0..1 across phase 1+2
+        ballAngle = ballStart + (ballCaptureAngle - ballStart) * eFrac;
         let rT = clamp01((p - spiralStart) / (dropStart - spiralStart));
         rT = easeOutCubic(rT);
-        ballRadius = startRadius + (POCKET_RADIUS + 4 - startRadius) * rT;
+        ballRadius = startRadius + (POCKET_RADIUS + 5 - startRadius) * rT;
       } else {
-        // Phase 3: ball is captured by pocket idx. Lock its angle to the pocket's
-        // screen angle so it rotates WITH the wheel, add a small rattle, and drop
-        // the last few px into the pocket.
+        // Phase 3: ball is captured by pocket idx — it now rides WITH the wheel.
+        // Its angle is the live pocket screen angle (which equals ballCaptureAngle,
+        // mod 2PI, at the boundary), plus a damped bounce that grows then dies,
+        // and a small inward settle of the last few px.
         const dT = clamp01((p - dropStart) / (1 - dropStart));
         const de = easeOutCubic(dT);
         const pocketAng = pocketScreenAngle(idx);
-        // rattle: a damped wobble around the pocket center that dies out
-        const rattle = (1 - dT) * 0.06 * Math.sin(dT * Math.PI * 7);
+        // rattle: a bounce that eases in from zero, then decays — feels like the
+        // ball knocking against the fret before settling. Zero at dT=0 and dT=1.
+        const rattle = Math.sin(dT * Math.PI) * (1 - dT) * 0.05 * Math.cos(dT * Math.PI * 6);
         ballAngle = pocketAng + rattle;
-        ballRadius = (POCKET_RADIUS + 4) + (POCKET_RADIUS - (POCKET_RADIUS + 4)) * de;
+        ballRadius = (POCKET_RADIUS + 5) + (POCKET_RADIUS - (POCKET_RADIUS + 5)) * de;
       }
 
       drawWheel();
