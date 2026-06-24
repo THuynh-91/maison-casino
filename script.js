@@ -34,6 +34,12 @@
   const resultBanner = document.getElementById("result-banner");
   const resultNumber = document.getElementById("result-number");
   const spinButton = document.getElementById("spin-button");
+  const undoButton = document.getElementById("undo-button");
+  const clearButton = document.getElementById("clear-button");
+  const rebetButton = document.getElementById("rebet-button");
+
+  // map of bet-key -> cell element, so we can highlight winners and rerender chips
+  const cellByKey = new Map();
 
   // ---------------- Bet definitions ----------------
   // Column numbers (top row 3,6,..36 ; mid 2,5,..; bottom 1,4,..) matched to standard layout.
@@ -70,7 +76,23 @@
     el.className = "cell" + (opts.cls ? " " + opts.cls : "");
     el.textContent = label;
     el.dataset.key = opts.key;
+    el.setAttribute("role", "button");
+    el.setAttribute("tabindex", "0");
+    el.setAttribute("aria-label", "Bet " + label);
     el.addEventListener("click", () => placeBet(opts.bet, opts.key, el));
+    // keyboard: Enter/Space places a chip
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        placeBet(opts.bet, opts.key, el);
+      }
+    });
+    // right-click removes one chip from this cell (QoL)
+    el.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      removeChipFrom(opts.key);
+    });
+    cellByKey.set(opts.key, el);
     return el;
   }
 
@@ -153,9 +175,10 @@
   function placeBet(betDef, key, el) {
     if (spinning) return;
     if (balance < chipValue) {
-      flash("Not enough balance for that chip.", "lose");
+      flash("Not enough balance for a $" + chipValue + " chip. Pick a smaller chip.", "lose");
       return;
     }
+    clearWinHighlights();
     balance -= chipValue;
     const existing = bets.find((b) => b.key === key);
     if (existing) {
@@ -165,6 +188,23 @@
     }
     renderChipOn(el, key);
     updateBank();
+  }
+
+  // remove one chip's worth from a specific cell (right-click)
+  function removeChipFrom(key) {
+    if (spinning) return;
+    const bet = bets.find((b) => b.key === key);
+    if (!bet) return;
+    const dec = Math.min(chipValue, bet.amount);
+    bet.amount -= dec;
+    balance += dec;
+    if (bet.amount <= 0) bets = bets.filter((b) => b !== bet);
+    rerenderAllChips();
+    updateBank();
+  }
+
+  function clearWinHighlights() {
+    document.querySelectorAll(".cell.winning").forEach((c) => c.classList.remove("winning"));
   }
 
   function renderChipOn(el, key) {
@@ -187,40 +227,66 @@
     return bets.reduce((s, b) => s + b.amount, 0);
   }
 
-  function updateBank() {
+  function updateBank(flashKind) {
     balanceEl.textContent = "$" + balance;
-    stakedEl.textContent = "$" + totalStaked();
+    const staked = totalStaked();
+    stakedEl.textContent = "$" + staked;
+    stakedEl.classList.toggle("active", staked > 0);
+    balanceEl.classList.toggle("low", balance < 100);
+    if (flashKind) {
+      balanceEl.classList.remove("flash-win", "flash-lose");
+      // force reflow so the animation restarts each spin
+      void balanceEl.offsetWidth;
+      balanceEl.classList.add(flashKind === "win" ? "flash-win" : "flash-lose");
+    }
     saveBalance();
+    updateControls();
+  }
+
+  // enable/disable controls based on current state
+  function updateControls() {
+    const hasBets = bets.length > 0;
+    spinButton.disabled = spinning || !hasBets;
+    spinButton.title = hasBets ? "Spin the wheel" : "Place a bet to spin";
+    undoButton.disabled = spinning || !hasBets;
+    clearButton.disabled = spinning || !hasBets;
+    rebetButton.disabled =
+      spinning ||
+      lastBets.length === 0 ||
+      balance < lastBets.reduce((s, b) => s + b.amount, 0);
   }
 
   // ---------------- Controls ----------------
-  document.getElementById("clear-button").addEventListener("click", () => {
-    if (spinning) return;
+  clearButton.addEventListener("click", () => {
+    if (spinning || bets.length === 0) return;
     balance += totalStaked();
     bets = [];
     clearChipEls();
+    clearWinHighlights();
     updateBank();
     flash("Bets cleared.");
   });
 
-  document.getElementById("undo-button").addEventListener("click", () => {
+  undoButton.addEventListener("click", () => {
     if (spinning || bets.length === 0) return;
     const last = bets[bets.length - 1];
-    // remove one chip's worth from the most recently touched bet
-    last.amount -= chipValue;
-    balance += chipValue;
+    // remove one chip's worth (capped to the bet amount) from the most recently touched bet
+    const dec = Math.min(chipValue, last.amount);
+    last.amount -= dec;
+    balance += dec;
     if (last.amount <= 0) bets.pop();
     rerenderAllChips();
     updateBank();
   });
 
-  document.getElementById("rebet-button").addEventListener("click", () => {
+  rebetButton.addEventListener("click", () => {
     if (spinning || lastBets.length === 0) return;
     const cost = lastBets.reduce((s, b) => s + b.amount, 0);
     if (balance < cost) {
       flash("Not enough balance to rebet.", "lose");
       return;
     }
+    clearWinHighlights();
     balance -= cost;
     bets = lastBets.map((b) => Object.assign({}, b));
     rerenderAllChips();
@@ -231,48 +297,75 @@
   function rerenderAllChips() {
     clearChipEls();
     bets.forEach((b) => {
-      const el = document.querySelector('[data-key="' + cssEscape(b.key) + '"]');
+      const el = cellByKey.get(b.key);
       if (el) renderChipOn(el, b.key);
     });
   }
 
-  function cssEscape(s) {
-    return s.replace(/[^a-zA-Z0-9_-]/g, "\\$&");
-  }
-
   // ---------------- Spin ----------------
-  spinButton.addEventListener("click", () => {
+  function doSpin() {
     if (spinning) return;
     if (bets.length === 0) {
       flash("Place a bet first.", "lose");
       return;
     }
+    clearWinHighlights();
+    const staked = totalStaked();
     const result = Core.spinResult();
     lastBets = bets.map((b) => Object.assign({}, b));
-    spinTo(result, () => resolve(result));
+    flash("No more bets — round in play. ($" + staked + " on the table)");
+    spinTo(result, () => resolve(result, staked));
+  }
+  spinButton.addEventListener("click", doSpin);
+
+  // keyboard: Space spins (unless focus is on another control)
+  document.addEventListener("keydown", (e) => {
+    if (e.key === " " && !spinning && document.activeElement === document.body) {
+      e.preventDefault();
+      doSpin();
+    }
   });
 
-  function resolve(result) {
+  function resolve(result, staked) {
     const outcome = Core.resolveBets(bets, result);
     balance += outcome.totalReturned;
     lastwinEl.textContent = "$" + outcome.totalReturned;
 
+    highlightWinners(outcome, result);
     pushHistory(result);
     showBanner(result);
 
-    if (outcome.netProfit > 0) {
+    const won = outcome.netProfit > 0;
+    if (won) {
       flash("Number " + result + " (" + colorOf(result) + "). You won $" + outcome.netProfit + " net!", "win");
+    } else if (outcome.netProfit === 0) {
+      flash("Number " + result + " (" + colorOf(result) + "). You broke even.", null);
     } else {
       flash("Number " + result + " (" + colorOf(result) + "). You lost $" + Math.abs(outcome.netProfit) + ".", "lose");
     }
 
     bets = [];
     clearChipEls();
+    let busted = false;
     if (balance <= 0) {
       balance = 1000;
-      flash("Busted! Topping you back up to $1000.", "lose");
+      busted = true;
     }
-    updateBank();
+    updateBank(won ? "win" : "lose");
+    if (busted) flash("Busted! Topping you back up to $1000.", "lose");
+  }
+
+  // ring the winning straight number and every winning outside/inside bet cell
+  function highlightWinners(outcome, result) {
+    const numKey = "straight:" + result;
+    const numCell = cellByKey.get(numKey);
+    if (numCell) numCell.classList.add("winning");
+    outcome.details.forEach((d) => {
+      if (d.won) {
+        const cell = cellByKey.get(d.bet.key);
+        if (cell) cell.classList.add("winning");
+      }
+    });
   }
 
   function flash(msg, kind) {
@@ -295,6 +388,10 @@
   function showBanner(result) {
     resultBanner.className = "result-banner " + colorOf(result);
     resultNumber.textContent = result;
+    // restart the pop animation each spin
+    resultBanner.style.animation = "none";
+    void resultBanner.offsetWidth;
+    resultBanner.style.animation = "";
   }
 
   // ---------------- Wheel rendering & animation ----------------
@@ -384,7 +481,7 @@
   // Animate so the ball ends in the pocket of `result`.
   function spinTo(result, done) {
     spinning = true;
-    spinButton.disabled = true;
+    updateControls();
     resultBanner.classList.add("hidden");
 
     const idx = WHEEL_ORDER.indexOf(result);
@@ -419,9 +516,9 @@
         ballAngle = -Math.PI / 2;
         drawWheel();
         spinning = false;
-        spinButton.disabled = false;
         resultBanner.classList.remove("hidden");
         done();
+        updateControls();
       }
     }
     requestAnimationFrame(frame);

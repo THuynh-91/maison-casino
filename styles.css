@@ -50,6 +50,15 @@ body {
 /* ---------------- Wheel ---------------- */
 .wheel-side { display: flex; flex-direction: column; align-items: center; gap: 14px; }
 #wheel-container { position: relative; }
+/* fixed pointer at top of wheel showing the landing slot */
+.wheel-pointer {
+  position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
+  width: 0; height: 0; z-index: 3;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-top: 20px solid var(--gold);
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,.6));
+}
 #roulette-wheel {
   border-radius: 50%;
   box-shadow: 0 0 0 8px #3a2a12, 0 0 0 14px var(--gold), 0 18px 40px rgba(0,0,0,.6);
@@ -62,6 +71,12 @@ body {
   border: 3px solid var(--gold);
   box-shadow: 0 6px 18px rgba(0,0,0,.5);
   transition: transform .2s;
+  animation: bannerPop .45s ease;
+}
+@keyframes bannerPop {
+  0% { transform: scale(.3); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); }
 }
 .result-banner.hidden { display: none; }
 .result-banner.red { background: var(--red); }
@@ -162,3 +177,53 @@ body {
 .message { min-height: 22px; font-weight: 600; color: var(--gold); }
 .message.lose { color: #ff8a8a; }
 .message.win { color: #8affa0; }
+
+/* keyboard focus affordance */
+.cell:focus-visible, .chip:focus-visible, .btn:focus-visible {
+  outline: 3px solid var(--gold); outline-offset: 2px;
+}
+.cell { outline: none; }
+
+/* highlight the winning number / outside bets on the grid after a spin */
+.cell.winning {
+  box-shadow: 0 0 0 3px var(--gold), 0 0 14px 3px rgba(231,200,115,.85);
+  z-index: 2;
+  animation: winPulse 1.4s ease infinite;
+}
+@keyframes winPulse {
+  0%,100% { filter: brightness(1.15); }
+  50% { filter: brightness(1.6); }
+}
+
+/* chip on a cell: stack + gold ring, more legible */
+.bet-chip {
+  background: radial-gradient(circle at 35% 30%, #ffe9ad, var(--gold));
+  border: 2px solid #fff;
+  box-shadow: 0 2px 5px var(--chip-shadow), 0 0 0 1px rgba(0,0,0,.4);
+}
+
+/* balance value flashes green on win, red on loss */
+.value.flash-win { animation: flashWin .9s ease; }
+.value.flash-lose { animation: flashLose .9s ease; }
+@keyframes flashWin {
+  0% { color: #8affa0; transform: scale(1.25); text-shadow: 0 0 12px #8affa0; }
+  100% { color: var(--gold); transform: scale(1); }
+}
+@keyframes flashLose {
+  0% { color: #ff8a8a; transform: scale(1.25); text-shadow: 0 0 12px #ff8a8a; }
+  100% { color: var(--gold); transform: scale(1); }
+}
+
+/* low / busted balance warning */
+#balance.low { color: #ff8a8a; }
+
+/* total-bet pill emphasis when bets are staked */
+#staked.active { color: #8affa0; }
+
+@media (max-width: 560px) {
+  .topbar { flex-direction: column; gap: 8px; padding: 12px; }
+  .bank { gap: 18px; }
+  .layout { padding: 14px; gap: 18px; }
+  .btn.primary { width: 100%; }
+  .controls { width: 100%; }
+}

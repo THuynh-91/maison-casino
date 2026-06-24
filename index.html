@@ -28,6 +28,7 @@
   <main class="layout">
     <section class="wheel-side">
       <div id="wheel-container">
+        <div class="wheel-pointer" aria-hidden="true"></div>
         <canvas id="roulette-wheel" width="420" height="420"></canvas>
       </div>
       <div id="result-banner" class="result-banner hidden">
@@ -52,12 +53,12 @@
       </div>
 
       <div class="controls">
-        <button id="spin-button" class="btn primary">SPIN</button>
-        <button id="undo-button" class="btn">Undo</button>
-        <button id="clear-button" class="btn">Clear Bets</button>
-        <button id="rebet-button" class="btn">Rebet</button>
+        <button id="spin-button" class="btn primary" disabled title="Place a bet to spin">SPIN</button>
+        <button id="undo-button" class="btn" disabled>Undo</button>
+        <button id="clear-button" class="btn" disabled>Clear Bets</button>
+        <button id="rebet-button" class="btn" disabled>Rebet</button>
       </div>
-      <p id="message" class="message"></p>
+      <p id="message" class="message" role="status" aria-live="polite"></p>
     </section>
   </main>
 
