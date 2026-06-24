@@ -1,0 +1,215 @@
+/* ============================================================================
+ * blackjack.css — table-specific styles, on top of theme.css tokens.
+ * Warm/editorial: felt via --felt, serif headings, coral accent, calm motion.
+ * Reduced-motion handled globally in theme.css (animation-duration overrides).
+ * ========================================================================== */
+
+.bj-root {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: var(--sp-5);
+  align-items: start;
+}
+
+/* ---- Felt table ---- */
+.bj-felt {
+  position: relative;
+  background:
+    radial-gradient(120% 90% at 50% -10%, color-mix(in srgb, var(--felt) 78%, #000 0%), var(--felt) 55%, var(--felt-dark) 100%);
+  border: 1px solid var(--felt-dark);
+  border-radius: var(--r-xl);
+  padding: var(--sp-6) var(--sp-5) var(--sp-5);
+  box-shadow: var(--shadow-lg), inset 0 0 0 6px color-mix(in srgb, var(--gold) 22%, transparent),
+              inset 0 0 90px rgba(0, 0, 0, .28);
+  color: #fff;
+  min-height: 420px;
+}
+
+.bj-felt__head {
+  display: flex; align-items: center; justify-content: center; gap: var(--sp-3);
+  flex-wrap: wrap; margin-bottom: var(--sp-5);
+}
+.bj-phase {
+  background: rgba(255, 255, 255, .12); color: #fff; border-color: rgba(255, 255, 255, .25);
+  font-weight: 600; letter-spacing: .01em;
+}
+.bj-phase.is-active { background: var(--c-coral-soft); color: var(--c-coral-hover); border-color: transparent; }
+.bj-rule { color: rgba(255, 255, 255, .72); }
+
+.bj-felt__divider {
+  height: 1px; margin: var(--sp-5) auto;
+  background: linear-gradient(90deg, transparent, var(--felt-line), transparent);
+}
+
+.bj-area-label {
+  font-family: var(--font-serif); font-size: 1.05rem; letter-spacing: .02em;
+  color: rgba(255, 255, 255, .9);
+}
+
+/* ---- Dealer ---- */
+.bj-dealer { display: flex; flex-direction: column; align-items: center; gap: var(--sp-3); }
+.bj-dealer__head { display: flex; align-items: center; gap: var(--sp-3); }
+.bj-dealer__hand { min-height: 92px; }
+
+/* ---- Hand value pill ---- */
+.bj-value {
+  background: rgba(255, 255, 255, .14); color: #fff; border-color: rgba(255, 255, 255, .25);
+  font-family: var(--font-mono); font-weight: 600; min-width: 30px; justify-content: center;
+}
+.bj-value.is-bust { background: var(--error); border-color: transparent; color: #fff; }
+
+/* ---- Seats grid ---- */
+.bj-seats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--sp-4);
+  align-items: start;
+}
+.bj-seat {
+  background: rgba(20, 20, 19, .22);
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: var(--r-lg);
+  padding: var(--sp-3);
+  display: flex; flex-direction: column; gap: var(--sp-2);
+  transition: border-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out),
+              transform var(--dur-base) var(--ease-out);
+}
+.bj-seat--empty {
+  align-items: center; justify-content: center; text-align: center;
+  min-height: 120px; border-style: dashed; gap: var(--sp-3);
+}
+.bj-seat__label { color: rgba(255, 255, 255, .7); }
+.bj-seat__open { color: rgba(255, 255, 255, .5); }
+.bj-seat--me { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
+.bj-seat--turn {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--ring), var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.bj-seat__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-2); }
+.bj-seat__name { font-weight: 600; display: inline-flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bj-seat__you {
+  font-size: .62rem; text-transform: uppercase; letter-spacing: .05em;
+  padding: 2px 6px; border-radius: var(--r-pill); background: var(--c-coral-soft); color: var(--c-coral-hover);
+}
+.bj-seat__bal { font-family: var(--font-mono); font-size: .85rem; color: rgba(255, 255, 255, .78); }
+
+.bj-hands { display: flex; flex-direction: column; gap: var(--sp-2); }
+.bj-hand-empty { color: rgba(255, 255, 255, .6); padding: var(--sp-2) 0; }
+
+.bj-hand-wrap {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: var(--sp-2); border-radius: var(--r-md);
+  transition: background var(--dur-base) var(--ease-out);
+}
+.bj-hand-wrap--turn { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.bj-hand__meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.bj-hand__bet { background: rgba(255, 255, 255, .14); color: #fff; border-color: rgba(255, 255, 255, .25); font-family: var(--font-mono); }
+
+/* ---- Badges ---- */
+.bj-badge {
+  font-size: .66rem; text-transform: uppercase; letter-spacing: .05em; font-weight: 700;
+  padding: 3px 8px; border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, .16); color: #fff;
+}
+.bj-badge.is-bj { background: var(--gold); color: #1a1407; }
+.bj-badge.is-bust { background: var(--error); color: #fff; }
+.bj-badge.is-stand { background: rgba(255, 255, 255, .26); color: #fff; }
+
+/* ---- Result line (after settle) ---- */
+.bj-result {
+  font-weight: 700; font-size: .9rem; padding: 6px 10px; border-radius: var(--r-md);
+  text-align: center;
+}
+.bj-result--win { background: color-mix(in srgb, var(--success) 32%, transparent); color: #eafbe2; }
+.bj-result--lose { background: color-mix(in srgb, var(--error) 32%, transparent); color: #fde2db; }
+.bj-result--push { background: rgba(255, 255, 255, .16); color: #fff; }
+
+/* ============================================================================
+ * CARDS — drawn faces with rank + suit pip; deal-in animation.
+ * ========================================================================== */
+.bj-hand { display: flex; gap: 6px; flex-wrap: wrap; align-items: flex-end; min-height: 80px; }
+
+.bj-card {
+  position: relative;
+  width: 54px; height: 76px;
+  background: #fdfcf8;
+  border-radius: 7px;
+  border: 1px solid rgba(20, 20, 19, .18);
+  box-shadow: var(--shadow-sm);
+  display: flex; align-items: center; justify-content: center;
+  flex: none;
+  user-select: none;
+}
+.bj-card--red { color: #b3231a; }
+.bj-card--dark { color: #1a1a1a; }
+
+.bj-card__corner {
+  position: absolute; display: flex; flex-direction: column; align-items: center;
+  line-height: 1; font-weight: 700;
+}
+.bj-card__corner--tl { top: 5px; left: 6px; }
+.bj-card__corner--br { bottom: 5px; right: 6px; transform: rotate(180deg); }
+.bj-card__rank { font-size: .82rem; font-family: var(--font-sans); }
+.bj-card__suit { font-size: .68rem; }
+.bj-card__pip { font-size: 1.7rem; line-height: 1; }
+
+/* Face-down back */
+.bj-card--back {
+  background:
+    repeating-linear-gradient(45deg, var(--c-coral) 0 6px, var(--c-coral-hover) 6px 12px);
+  border-color: rgba(20, 20, 19, .3);
+}
+.bj-card--back .bj-card__pattern {
+  position: absolute; inset: 5px; border-radius: 4px;
+  border: 2px solid rgba(255, 255, 255, .55);
+  background: repeating-linear-gradient(-45deg, rgba(255, 255, 255, .18) 0 4px, transparent 4px 8px);
+}
+
+/* Deal-in animation: slide + fade from the top (the "shoe"). */
+@keyframes bj-deal {
+  from { opacity: 0; transform: translateY(-22px) rotate(-6deg) scale(.94); }
+  to   { opacity: 1; transform: translateY(0) rotate(0) scale(1); }
+}
+.bj-card--deal { animation: bj-deal var(--dur-slow) var(--ease-soft) both; }
+
+/* ============================================================================
+ * CONTROLS
+ * ========================================================================== */
+.bj-controls {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
+  padding: var(--sp-4) var(--sp-5); box-shadow: var(--shadow-xs);
+}
+.bj-controls__row {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4);
+  flex-wrap: wrap;
+}
+.bj-controls__hint { margin: 0; }
+.bj-controls__hint.is-turn { color: var(--accent); font-weight: 600; }
+.bj-controls__bet { display: flex; flex-direction: column; gap: var(--sp-2); }
+.bj-controls__buttons { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+
+/* ---- Chip selector ---- */
+.bj-chips { display: flex; gap: var(--sp-2); align-items: center; flex-wrap: wrap; }
+.bj-chip {
+  width: 46px; height: 46px; border-radius: 50%;
+  border: 3px dashed rgba(255, 255, 255, .85);
+  font-weight: 800; font-size: .9rem; color: #fff; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-base) var(--ease-out), outline-color var(--dur-base) var(--ease-out);
+  outline: 2px solid transparent; outline-offset: 2px;
+}
+.bj-chip:hover:not(.is-poor) { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.bj-chip.selected { outline-color: var(--accent); transform: translateY(-2px) scale(1.04); }
+.bj-chip.is-poor { opacity: .42; cursor: not-allowed; }
+.bj-chip.chip-5 { background: var(--chip-5); }
+.bj-chip.chip-25 { background: var(--chip-25); }
+.bj-chip.chip-100 { background: var(--chip-100); }
+.bj-chip.chip-500 { background: var(--chip-500); }
+
+@media (max-width: 720px) {
+  .bj-controls__row { flex-direction: column; align-items: stretch; }
+  .bj-controls__buttons { justify-content: center; }
+}

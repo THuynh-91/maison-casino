@@ -1,0 +1,174 @@
+/* ============================================================================
+ * games/plinko.css — Plinko table view.
+ * Warm/editorial theme (shared tokens from lib/theme.css). Coral accent, soft
+ * radii, calm motion, reduced-motion safe. Mirrors roulette.css conventions:
+ * a two-column layout (board canvas + controls) inside .room__main.
+ * ========================================================================== */
+
+.pk-root {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.9fr);
+  gap: var(--sp-6);
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .pk-root { grid-template-columns: 1fr; }
+}
+
+/* ---- Board side ---------------------------------------------------------- */
+.pk-board-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  min-width: 0;
+}
+
+.pk-board-wrap {
+  position: relative;
+  background: linear-gradient(180deg,
+      color-mix(in srgb, var(--felt) 92%, #000 8%),
+      color-mix(in srgb, var(--felt-dark) 94%, #000 6%));
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, .06);
+  padding: var(--sp-4) var(--sp-3) var(--sp-3);
+  overflow: hidden;
+}
+
+.pk-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: none;
+}
+
+.pk-board-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 60% at 50% -10%,
+      rgba(231, 200, 115, .14), transparent 60%);
+}
+
+/* ---- Multiplier row ------------------------------------------------------ */
+.pk-slots {
+  display: flex;
+  gap: 3px;
+  margin-top: var(--sp-2);
+}
+.pk-slot {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: clamp(.55rem, 1.4vw, .82rem);
+  padding: 6px 2px;
+  border-radius: var(--r-sm);
+  color: var(--c-ink);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  transition: transform var(--dur-base) var(--ease-out),
+              box-shadow var(--dur-base) var(--ease-out),
+              filter var(--dur-base) var(--ease-out);
+}
+.pk-slot.is-hot   { background: var(--c-coral);     color: #fff; border-color: transparent; }
+.pk-slot.is-warm  { background: var(--c-amber);     color: #fff; border-color: transparent; }
+.pk-slot.is-mid   { background: var(--c-coral-soft); color: var(--c-coral-hover); }
+.pk-slot.is-cool  { background: var(--surface-2);   color: var(--text-muted); }
+.pk-slot.is-win {
+  transform: translateY(-4px) scale(1.06);
+  box-shadow: 0 0 0 2px var(--ring), var(--shadow-md);
+  filter: brightness(1.08);
+  z-index: 2;
+}
+
+/* ---- Controls side ------------------------------------------------------- */
+.pk-controls-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.pk-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-xs);
+  padding: var(--sp-5);
+}
+
+.pk-field { display: flex; flex-direction: column; gap: var(--sp-2); margin-bottom: var(--sp-4); }
+.pk-field__label {
+  font-size: .82rem; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: .04em;
+}
+
+.pk-bet-row { display: flex; gap: var(--sp-2); align-items: stretch; }
+.pk-bet-row .input { flex: 1 1 auto; }
+.pk-bet-quick { display: flex; gap: 6px; flex-wrap: wrap; margin-top: var(--sp-2); }
+.pk-quick {
+  flex: 1 1 auto; padding: 7px 4px; font-size: .82rem; font-weight: 600;
+  border-radius: var(--r-sm); border: 1px solid var(--border-strong);
+  background: var(--surface); color: var(--text); cursor: pointer;
+  transition: background var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out);
+}
+.pk-quick:hover:not(:disabled) { background: var(--surface-2); border-color: var(--c-mid-gray); }
+
+/* Risk segmented control */
+.pk-risk { display: flex; gap: 0; border: 1px solid var(--border-strong); border-radius: var(--r-md); overflow: hidden; }
+.pk-risk__btn {
+  flex: 1 1 0; padding: 9px 6px; font-size: .85rem; font-weight: 600;
+  background: var(--surface); color: var(--text-muted); border: none; cursor: pointer;
+  text-transform: capitalize;
+  transition: background var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out);
+  border-right: 1px solid var(--border);
+}
+.pk-risk__btn:last-child { border-right: none; }
+.pk-risk__btn.is-active { background: var(--accent); color: var(--accent-contrast); }
+.pk-risk__btn:hover:not(.is-active) { background: var(--surface-2); color: var(--text); }
+
+.pk-drop {
+  width: 100%;
+  font-size: 1.05rem;
+  padding: 13px 18px;
+  letter-spacing: .03em;
+}
+
+.pk-balance-line {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-top: var(--sp-3); font-size: .9rem; color: var(--text-muted);
+}
+.pk-balance-line strong { color: var(--text); font-family: var(--font-mono); }
+
+/* Last-drop readout */
+.pk-last {
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--border);
+  min-height: 48px;
+}
+.pk-last__row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--sp-3); }
+.pk-last__mult { font-family: var(--font-serif); font-size: 1.5rem; color: var(--text); }
+.pk-last__payout { font-family: var(--font-mono); font-weight: 600; font-size: 1.3rem; }
+.pk-last__payout.is-win  { color: var(--success); }
+.pk-last__payout.is-lose { color: var(--error); }
+.pk-last__caption { font-size: .82rem; color: var(--text-muted); margin-top: 4px; }
+.pk-last.bump { animation: pk-bump var(--dur-slow) var(--ease-soft); }
+@keyframes pk-bump { 0% { transform: scale(1); } 35% { transform: scale(1.03); } 100% { transform: scale(1); } }
+
+/* Recent wins feed */
+.pk-feed { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; }
+.pk-feed__item {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2);
+  padding: 8px 10px; border-radius: var(--r-sm); background: var(--surface-2);
+  font-size: .85rem; animation: rise-in var(--dur-base) var(--ease-soft) both;
+}
+.pk-feed__name { font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pk-feed__mult { font-family: var(--font-mono); font-weight: 600; padding: 2px 8px; border-radius: var(--r-pill); font-size: .78rem; }
+.pk-feed__mult.is-hot  { background: var(--c-coral-soft); color: var(--c-coral-hover); }
+.pk-feed__mult.is-cool { background: var(--border); color: var(--text-muted); }
+.pk-feed__payout { font-family: var(--font-mono); color: var(--text-muted); }
+.pk-feed__empty { font-size: .85rem; color: var(--text-subtle); padding: var(--sp-2); }
+
+.pk-eyebrow { align-self: flex-start; }
