@@ -1,0 +1,156 @@
+/* ============================================================================
+ * roulette.css — table-specific styles, on top of theme.css tokens.
+ * Felt uses --felt; chips use --chip-* tokens; accent coral for highlights.
+ * ========================================================================== */
+
+.rl-root {
+  display: grid;
+  grid-template-columns: minmax(360px, 440px) minmax(420px, 1fr);
+  gap: var(--sp-6);
+  align-items: start;
+}
+@media (max-width: 1080px) { .rl-root { grid-template-columns: 1fr; } }
+
+/* ---- Wheel side ---- */
+.rl-wheel-side { display: flex; flex-direction: column; align-items: center; gap: var(--sp-4); }
+.rl-wheel-wrap { position: relative; }
+.rl-pointer {
+  position: absolute; top: -8px; left: 50%; transform: translateX(-50%); z-index: 3;
+  width: 0; height: 0; border-left: 11px solid transparent; border-right: 11px solid transparent;
+  border-top: 18px solid var(--gold); filter: drop-shadow(0 2px 3px rgba(0,0,0,.5));
+}
+.rl-wheel {
+  border-radius: 50%; display: block; max-width: 100%; height: auto; background: #111;
+  box-shadow: 0 0 0 7px #3a2a12, 0 0 0 12px var(--gold), var(--shadow-lg);
+}
+.rl-result {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 78px; height: 78px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-serif); font-size: 34px; font-weight: 600; color: #fff;
+  border: 3px solid var(--gold); box-shadow: var(--shadow-lg);
+  animation: rl-pop var(--dur-slow) var(--ease-soft);
+}
+.rl-result.hidden { display: none; }
+.rl-result.red { background: #c1121f; } .rl-result.black { background: #1a1a1a; } .rl-result.green { background: #0a6b3b; }
+@keyframes rl-pop { 0% { transform: translate(-50%,-50%) scale(.3); opacity: 0; } 60% { transform: translate(-50%,-50%) scale(1.12); opacity: 1; } 100% { transform: translate(-50%,-50%) scale(1); } }
+
+.rl-phase { font-weight: 600; }
+.rl-phase.is-spinning { background: var(--c-coral-soft); color: var(--c-coral-hover); border-color: transparent; }
+
+.rl-history { display: flex; gap: 6px; flex-wrap: wrap; max-width: 380px; justify-content: center; }
+.rl-h { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; }
+.rl-h.red { background: #c1121f; } .rl-h.black { background: #1a1a1a; } .rl-h.green { background: #0a6b3b; }
+
+.rl-spin-summary { text-align: center; min-height: 40px; }
+.rl-summary__result { display: inline-flex; align-items: baseline; gap: 8px; font-family: var(--font-serif); font-size: 1.4rem; }
+.rl-summary__result.red { color: #c1121f; } .rl-summary__result.black { color: var(--text); } .rl-summary__result.green { color: var(--success); }
+.rl-summary__color { font-family: var(--font-sans); font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); }
+.rl-summary__net { font-weight: 600; margin-top: 2px; }
+.rl-summary__net.rl-win { color: var(--success); }
+.rl-summary__net.rl-lose { color: var(--error); }
+
+/* ---- Chips tray ---- */
+.rl-table-side { display: flex; flex-direction: column; gap: var(--sp-4); }
+.rl-chips { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
+.rl-chips-label { color: var(--text-muted); font-size: .85rem; flex-basis: 100%; }
+.rl-chip {
+  width: 50px; height: 50px; border-radius: 50%;
+  border: 3px dashed rgba(255,255,255,.85);
+  font-weight: 800; font-size: .95rem; color: #fff; cursor: grab;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--shadow-sm); user-select: none;
+  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-base) var(--ease-out), outline-color var(--dur-fast);
+  outline: 3px solid transparent; outline-offset: 2px;
+}
+.rl-chip:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+.rl-chip:active { cursor: grabbing; }
+.rl-chip.selected { outline-color: var(--accent); transform: translateY(-4px); }
+.rl-chip.chip-1   { background: var(--chip-1); color: #222; border-color: rgba(0,0,0,.25); }
+.rl-chip.chip-5   { background: var(--chip-5); }
+.rl-chip.chip-25  { background: var(--chip-25); }
+.rl-chip.chip-100 { background: var(--chip-100); }
+.rl-chip.chip-500 { background: var(--chip-500); }
+.rl-chip--dragging { opacity: .45; transform: scale(.9); }
+.rl-chip--ghost { transform: scale(1.18); box-shadow: var(--shadow-lg); opacity: .96; }
+body.rl-dragging { cursor: grabbing; }
+body.rl-dragging .rl-cell, body.rl-dragging .rl-hotspot { cursor: copy; }
+
+/* ---- Felt + bet grid ---- */
+.rl-felt {
+  background: linear-gradient(160deg, var(--felt), var(--felt-dark));
+  border: 4px solid var(--gold); border-radius: var(--r-md);
+  padding: var(--sp-3); box-shadow: inset 0 0 40px rgba(0,0,0,.35), var(--shadow-md);
+}
+.rl-bet-grid {
+  display: grid; grid-template-columns: 44px repeat(12, 1fr) 44px; grid-template-rows: repeat(3, 44px);
+  gap: 3px; position: relative;
+}
+.rl-cell {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 14px; color: #fff; border: 1px solid rgba(255,255,255,.4);
+  cursor: pointer; user-select: none; transition: filter var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast);
+}
+.rl-cell:hover { filter: brightness(1.2); }
+.rl-cell:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+.rl-cell.red { background: #c1121f; } .rl-cell.black { background: #1a1a1a; } .rl-cell.green { background: #0a6b3b; }
+.rl-cell.zero { font-size: 17px; }
+.rl-cell.col-bet { background: rgba(0,0,0,.25); font-size: 12px; }
+
+.rl-outside { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; margin-top: 3px; }
+.rl-outside .rl-cell { height: 40px; background: rgba(0,0,0,.28); font-size: 12px; }
+.rl-outside .rl-cell.dozen { grid-column: span 2; }
+.rl-outside .rl-cell.swatch-red { background: #c1121f; }
+.rl-outside .rl-cell.swatch-black { background: #1a1a1a; }
+
+/* ---- Hotspots (split/street/corner/line/basket) ---- */
+.rl-hotspot {
+  position: absolute; z-index: 4; cursor: pointer; border-radius: 3px; background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  transition: background var(--dur-fast), box-shadow var(--dur-fast);
+}
+.rl-hotspot:hover, .rl-hotspot:focus-visible {
+  background: rgba(231,200,115,.45); box-shadow: 0 0 0 1px rgba(231,200,115,.9); outline: none;
+}
+.rl-hotspot.has-chip { background: rgba(231,200,115,.16); }
+
+/* ---- Drop-target highlight (drag-and-drop) ---- */
+.rl-drop-ok {
+  box-shadow: 0 0 0 3px var(--accent), 0 0 16px 2px color-mix(in srgb, var(--accent) 60%, transparent) !important;
+  z-index: 6 !important; filter: brightness(1.15);
+}
+.rl-hotspot.rl-drop-ok { background: color-mix(in srgb, var(--accent) 35%, transparent); }
+
+/* ---- Chips rendered on the board ---- */
+.rl-bet-chip {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; color: #222; pointer-events: none; z-index: 5;
+  border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,.45);
+  background: radial-gradient(circle at 35% 30%, #ffe9ad, var(--gold));
+  animation: rl-chip-drop var(--dur-base) var(--ease-soft);
+}
+.rl-bet-chip.is-other { background: radial-gradient(circle at 35% 30%, #cfd6e6, var(--chip-500)); color: #fff; opacity: .9; }
+.rl-bet-chip__others {
+  position: absolute; top: -6px; right: -6px; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--accent); color: #fff; font-size: 9px; display: flex; align-items: center; justify-content: center; border: 1px solid #fff;
+}
+.rl-hotspot .rl-bet-chip { position: static; transform: none; }
+@keyframes rl-chip-drop { from { transform: translate(-50%, -130%) scale(1.3); opacity: 0; } to { transform: translate(-50%,-50%) scale(1); opacity: 1; } }
+.rl-hotspot .rl-bet-chip { animation: none; }
+
+/* ---- Controls ---- */
+.rl-controls { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4); flex-wrap: wrap; }
+.rl-totals { display: flex; gap: var(--sp-5); }
+.rl-total { display: flex; flex-direction: column; }
+.rl-total__label { font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); }
+.rl-total strong { font-family: var(--font-mono); font-size: 1.25rem; }
+.rl-buttons { display: flex; gap: var(--sp-3); }
+.rl-spin { font-size: 1.05rem; padding: 12px 30px; letter-spacing: .04em; }
+
+@media (max-width: 520px) {
+  .rl-bet-grid { grid-template-columns: 28px repeat(12, 1fr) 30px; grid-template-rows: repeat(3, 38px); }
+  .rl-cell { font-size: 11px; }
+  .rl-chip { width: 44px; height: 44px; }
+}

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Maison Roulette — Multiplayer Casino</title>
+  <!-- Inline favicon (a coral chip) so browsers don't 404 on /favicon.ico -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23d97757'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%23fff' stroke-width='2' stroke-dasharray='3 3'/%3E%3C/svg%3E" />
+
+  <!-- Editorial type: Fraunces (serif display) + Inter (body), from the theme spec -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="/lib/theme.css" />
+  <link rel="stylesheet" href="/app.css" />
+  <link rel="stylesheet" href="/games/roulette.css" />
+</head>
+<body>
+  <!-- Single-page app shell. app.js swaps screens inside #app. -->
+  <div id="app" aria-live="polite"></div>
+
+  <!-- Toast + modal hosts (managed by lib/ui.js) -->
+  <div id="toast-host" class="toast-host" aria-live="assertive"></div>
+  <div id="modal-host"></div>
+
+  <!-- socket.io client served by the backend at this path -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/lib/ui.js"></script>
+  <script src="/lib/socket-client.js"></script>
+  <script src="/games/roulette.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

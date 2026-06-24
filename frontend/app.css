@@ -1,0 +1,146 @@
+/* ============================================================================
+ * app.css — layout for the lobby + room shell + admin, on top of theme.css.
+ * Uses only theme tokens (var(--…)). theme.css stays the single source of truth.
+ * ========================================================================== */
+
+#app { min-height: 100vh; }
+
+.stack { display: flex; flex-direction: column; gap: var(--sp-4); }
+.field { display: flex; flex-direction: column; gap: var(--sp-2); }
+.field__label { font-size: .85rem; font-weight: 600; color: var(--text-muted); }
+.icon-btn { padding: 8px 12px; font-size: 1.1rem; line-height: 1; }
+.btn--sm { padding: 7px 12px; font-size: .85rem; }
+
+/* ---- Toasts ---- */
+.toast-host {
+  position: fixed; right: var(--sp-5); bottom: var(--sp-5); z-index: 300;
+  display: flex; flex-direction: column; gap: var(--sp-2); align-items: flex-end;
+  pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-left: 4px solid var(--text-subtle);
+  border-radius: var(--r-md); padding: 12px 16px; box-shadow: var(--shadow-md);
+  font-size: .92rem; max-width: 340px;
+  animation: rise-in var(--dur-base) var(--ease-soft) both;
+}
+.toast--success { border-left-color: var(--success); }
+.toast--error { border-left-color: var(--error); }
+.toast--info { border-left-color: var(--accent); }
+.toast--out { animation: fade-out var(--dur-fast) var(--ease-out) both; }
+@keyframes fade-out { to { opacity: 0; transform: translateY(6px); } }
+
+/* ---- Modal extras (theme.css provides .overlay/.modal) ---- */
+.overlay--out { animation: fade-out var(--dur-base) var(--ease-out) both; }
+.modal__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-3); margin-bottom: var(--sp-4); }
+.modal__title { margin: 0; }
+.modal__close { font-size: 1rem; padding: 4px 10px; }
+.modal__body { max-height: 70vh; overflow: auto; }
+.modal__actions { display: flex; justify-content: flex-end; gap: var(--sp-2); margin-top: var(--sp-2); }
+
+/* ============================================================================
+ * LOBBY
+ * ========================================================================== */
+.lobby {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  padding: var(--sp-6);
+  background:
+    radial-gradient(1200px 600px at 80% -10%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, color-mix(in srgb, var(--felt) 22%, transparent), transparent 55%);
+}
+.lobby__inner { max-width: 640px; width: 100%; text-align: center; }
+.lobby__eyebrow { margin-bottom: var(--sp-4); }
+.lobby__title { margin: 0 0 var(--sp-3); }
+.lobby__lead { margin: 0 auto var(--sp-6); max-width: 52ch; }
+.lobby__card { text-align: left; }
+.lobby__actions { display: flex; flex-direction: column; gap: var(--sp-3); margin-top: var(--sp-4); }
+.lobby__create { width: 100%; font-size: 1.05rem; padding: 13px 18px; }
+.lobby__join { display: flex; gap: var(--sp-2); }
+.lobby__join .input { flex: 1; }
+.lobby__note { margin-top: var(--sp-5); }
+
+/* ============================================================================
+ * ROOM SHELL
+ * ========================================================================== */
+.room { min-height: 100vh; display: flex; flex-direction: column; }
+.room__nav { gap: var(--sp-3); }
+.nav__brand { display: flex; align-items: center; gap: var(--sp-2); }
+.nav__logo {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: var(--r-md);
+  background: var(--accent); color: var(--accent-contrast); font-size: 1.2rem; font-weight: 600;
+}
+.nav__title { font-weight: 600; letter-spacing: -.01em; }
+.nav__spacer { flex: 1; }
+.code-pill { cursor: pointer; gap: 8px; }
+.code-pill__label { font-size: .7rem; letter-spacing: .08em; opacity: .8; }
+.code-pill__code { font-family: var(--font-mono); letter-spacing: .05em; }
+.code-pill__copy { opacity: .7; }
+.code-pill:hover { box-shadow: var(--shadow-sm); }
+.nav__balance { gap: 8px; }
+.nav__balance-label { color: var(--text-muted); }
+#nav-balance-val.bump { animation: bump var(--dur-slow) var(--ease-soft); }
+@keyframes bump { 0% { transform: scale(1); } 40% { transform: scale(1.18); color: var(--success); } 100% { transform: scale(1); } }
+
+.room__body { flex: 1; display: grid; grid-template-columns: 320px 1fr; gap: var(--sp-5); padding: var(--sp-5); align-items: start; }
+.room__sidebar { display: flex; flex-direction: column; gap: var(--sp-5); position: sticky; top: 88px; }
+.panel__title { color: var(--text-muted); text-transform: uppercase; font-size: .78rem; letter-spacing: .08em; margin: 0 0 var(--sp-3); }
+
+/* players panel */
+.room__players { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-4); box-shadow: var(--shadow-xs); }
+.player-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.player { display: flex; align-items: center; gap: var(--sp-3); padding: 8px 10px; border-radius: var(--r-md); }
+.player--me { background: var(--surface-2); }
+.player__dot { width: 9px; height: 9px; border-radius: 50%; flex: none; box-shadow: 0 0 0 3px transparent; }
+.player__dot.is-on { background: var(--success); box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 22%, transparent); }
+.player__dot.is-off { background: var(--text-subtle); }
+.player__name { flex: 1; font-weight: 500; display: flex; align-items: center; gap: 6px; min-width: 0; }
+.player__name > :first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.player__you, .player__admin { font-size: .65rem; text-transform: uppercase; letter-spacing: .05em; padding: 2px 6px; border-radius: var(--r-pill); }
+.player__you { background: var(--c-coral-soft); color: var(--c-coral-hover); }
+.player__admin { background: var(--surface-2); border: 1px solid var(--border); color: var(--text-muted); }
+.player__balance { font-family: var(--font-mono); font-weight: 600; font-size: .9rem; }
+
+/* game picker */
+.room__picker { }
+.game-cards { display: flex; flex-direction: column; gap: var(--sp-3); }
+.game-card {
+  text-align: left; padding: var(--sp-4); display: flex; flex-direction: column; gap: 4px;
+  position: relative; font: inherit; color: var(--text);
+}
+.game-card__icon { font-size: 1.5rem; line-height: 1; }
+.game-card__title { font-weight: 600; font-size: 1.05rem; }
+.game-card__blurb { margin: 0; }
+.game-card.is-selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--ring); }
+.game-card.is-unavailable { opacity: .62; }
+.game-card__badge { position: absolute; top: var(--sp-3); right: var(--sp-3); }
+
+/* main game area */
+.room__main { min-height: 60vh; }
+.table-empty { text-align: center; padding: var(--sp-9) var(--sp-5); color: var(--text-muted); }
+.table-empty__glyph { font-size: 4rem; color: var(--accent); margin-bottom: var(--sp-3); }
+.table-empty h2 { color: var(--text); }
+
+/* ============================================================================
+ * ADMIN PANEL
+ * ========================================================================== */
+.admin { gap: var(--sp-4); }
+.admin__group { display: flex; flex-direction: column; gap: var(--sp-2); }
+.admin__row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); }
+.admin__inline { display: flex; gap: var(--sp-2); align-items: center; }
+.admin__amt { max-width: 120px; }
+.admin__divider { height: 1px; background: var(--border); }
+.admin__players { display: flex; flex-direction: column; gap: var(--sp-2); max-height: 320px; overflow: auto; }
+.admin__player { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--r-md); flex-wrap: wrap; }
+.admin__pinfo { display: flex; align-items: center; gap: var(--sp-2); }
+.admin__bal { font-family: var(--font-mono); }
+.admin__kick { background: var(--error); color: #fff; }
+.admin__kick:hover { filter: brightness(1.08); }
+
+@media (max-width: 880px) {
+  .room__body { grid-template-columns: 1fr; }
+  .room__sidebar { position: static; }
+  .game-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+  .admin__row { grid-template-columns: 1fr; }
+}
