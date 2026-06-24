@@ -125,6 +125,112 @@ test("multiple simultaneous bets resolve independently", () => {
   assert.equal(r.netProfit, 250 - 55); // 195
 });
 
+// ---- Board geometry helpers: splitNumbers ----
+test("splitNumbers: valid horizontal splits (same row, adjacent columns)", () => {
+  assert.deepEqual(Core.splitNumbers(1, 4), [1, 4]); // bottom row
+  assert.deepEqual(Core.splitNumbers(4, 1), [1, 4]); // order-independent
+  assert.deepEqual(Core.splitNumbers(2, 5), [2, 5]); // middle row
+  assert.deepEqual(Core.splitNumbers(3, 6), [3, 6]); // top row
+  assert.deepEqual(Core.splitNumbers(33, 36), [33, 36]);
+});
+
+test("splitNumbers: valid vertical splits (same column, differ by 1)", () => {
+  assert.deepEqual(Core.splitNumbers(1, 2), [1, 2]);
+  assert.deepEqual(Core.splitNumbers(2, 1), [1, 2]);
+  assert.deepEqual(Core.splitNumbers(2, 3), [2, 3]);
+  assert.deepEqual(Core.splitNumbers(34, 35), [34, 35]);
+  assert.deepEqual(Core.splitNumbers(35, 36), [35, 36]);
+});
+
+test("splitNumbers: valid zero-splits", () => {
+  assert.deepEqual(Core.splitNumbers(0, 1), [0, 1]);
+  assert.deepEqual(Core.splitNumbers(1, 0), [0, 1]);
+  assert.deepEqual(Core.splitNumbers(0, 2), [0, 2]);
+  assert.deepEqual(Core.splitNumbers(0, 3), [0, 3]);
+});
+
+test("splitNumbers: illegal splits return null", () => {
+  // 3 & 4: 3 is top-of-column-1, 4 is bottom-of-column-2 -> different rows, diff 1
+  assert.equal(Core.splitNumbers(3, 4), null);
+  // 1 & 5: diagonal
+  assert.equal(Core.splitNumbers(1, 5), null);
+  // 34 & 1: far apart
+  assert.equal(Core.splitNumbers(34, 1), null);
+  // same number
+  assert.equal(Core.splitNumbers(5, 5), null);
+  // vertical-looking but crossing a column boundary (6 top col2, 7 bottom col3)
+  assert.equal(Core.splitNumbers(6, 7), null);
+  // 0 with a non-bottom-row number
+  assert.equal(Core.splitNumbers(0, 4), null);
+  // off-board
+  assert.equal(Core.splitNumbers(36, 37), null);
+});
+
+// ---- streetNumbers ----
+test("streetNumbers: standard streets", () => {
+  assert.deepEqual(Core.streetNumbers(1), [1, 2, 3]);
+  assert.deepEqual(Core.streetNumbers(2), [4, 5, 6]);
+  assert.deepEqual(Core.streetNumbers(12), [34, 35, 36]);
+});
+
+test("streetNumbers: out-of-range returns null", () => {
+  assert.equal(Core.streetNumbers(0), null);
+  assert.equal(Core.streetNumbers(13), null);
+  assert.equal(Core.streetNumbers(1.5), null);
+});
+
+// ---- cornerNumbers ----
+test("cornerNumbers: valid 2x2 corners", () => {
+  assert.deepEqual(Core.cornerNumbers(1), [1, 2, 4, 5]);
+  assert.deepEqual(Core.cornerNumbers(2), [2, 3, 5, 6]);
+  assert.deepEqual(Core.cornerNumbers(4), [4, 5, 7, 8]);
+  assert.deepEqual(Core.cornerNumbers(31), [31, 32, 34, 35]);
+  assert.deepEqual(Core.cornerNumbers(32), [32, 33, 35, 36]);
+});
+
+test("cornerNumbers: invalid corners return null", () => {
+  // top row of a column has nothing above (3,6,...36)
+  assert.equal(Core.cornerNumbers(3), null);
+  assert.equal(Core.cornerNumbers(6), null);
+  // last column (34,35,36) has no column to the right
+  assert.equal(Core.cornerNumbers(34), null);
+  assert.equal(Core.cornerNumbers(35), null);
+  assert.equal(Core.cornerNumbers(36), null);
+  // off-board / zero
+  assert.equal(Core.cornerNumbers(0), null);
+  assert.equal(Core.cornerNumbers(37), null);
+});
+
+// ---- lineNumbers ----
+test("lineNumbers: standard six-lines", () => {
+  assert.deepEqual(Core.lineNumbers(1), [1, 2, 3, 4, 5, 6]);
+  assert.deepEqual(Core.lineNumbers(2), [4, 5, 6, 7, 8, 9]);
+  assert.deepEqual(Core.lineNumbers(11), [31, 32, 33, 34, 35, 36]);
+});
+
+test("lineNumbers: out-of-range returns null", () => {
+  assert.equal(Core.lineNumbers(0), null);
+  assert.equal(Core.lineNumbers(12), null);
+});
+
+// ---- Integration: helpers feed resolveBets ----
+test("split bet from splitNumbers wins on a covered number, loses otherwise", () => {
+  const numbers = Core.splitNumbers(1, 4);
+  assert.deepEqual(numbers, [1, 4]);
+  assert.equal(winNet({ type: "split", numbers, amount: 10 }, 4), 170);
+  const loss = Core.resolveBets([{ type: "split", numbers, amount: 10 }], 5);
+  assert.equal(loss.details[0].won, false);
+  assert.equal(loss.netProfit, -10);
+});
+
+test("corner bet from cornerNumbers resolves at 8:1", () => {
+  const numbers = Core.cornerNumbers(1);
+  assert.deepEqual(numbers, [1, 2, 4, 5]);
+  assert.equal(winNet({ type: "corner", numbers, amount: 10 }, 5), 80);
+  const loss = Core.resolveBets([{ type: "corner", numbers, amount: 10 }], 3);
+  assert.equal(loss.details[0].won, false);
+});
+
 // ---- spinResult bounds ----
 test("spinResult always in 0..36", () => {
   for (let i = 0; i < 5000; i++) {

@@ -4,6 +4,12 @@
 
   const Core = window.RouletteCore;
   const { WHEEL_ORDER, colorOf } = Core;
+  const {
+    splitNumbers,
+    streetNumbers,
+    cornerNumbers,
+    lineNumbers,
+  } = Core;
 
   // ---------------- State ----------------
   const STORAGE_KEY = "roulette.balance";
@@ -40,6 +46,11 @@
 
   // map of bet-key -> cell element, so we can highlight winners and rerender chips
   const cellByKey = new Map();
+  // number (0..36) -> { el, gridCol, gridRow } captured while building the grid.
+  // Used to place adjacency hotspots from real grid geometry rather than math.
+  const numberCells = new Map();
+  // all adjacency hotspot descriptors, kept so we can reposition on resize.
+  const hotspots = [];
 
   // ---------------- Bet definitions ----------------
   // Column numbers (top row 3,6,..36 ; mid 2,5,..; bottom 1,4,..) matched to standard layout.
@@ -106,6 +117,7 @@
     zero.style.gridRow = "1 / span 3";
     zero.style.gridColumn = "1";
     betGridEl.appendChild(zero);
+    numberCells.set(0, { el: zero, gridCol: 1, gridRow: 1 });
 
     // Numbers 1-36. Visual: 3 rows x 12 cols. Top row = 3,6,9... bottom = 1,4,7...
     // Grid rows are placed top(3n) -> row1, mid(3n-1) -> row2, bottom(3n-2) -> row3.
@@ -121,6 +133,7 @@
       cell.style.gridColumn = String(colIndex + 1); // +1 because col 1 is zero
       cell.style.gridRow = String(gridRow);
       betGridEl.appendChild(cell);
+      numberCells.set(n, { el: cell, gridCol: colIndex + 1, gridRow });
     }
 
     // Column bets (2:1) at far right, one per row.
@@ -137,6 +150,248 @@
       cell.style.gridRow = String(gridRow);
       betGridEl.appendChild(cell);
     }
+  }
+
+  // ---------------- Adjacency bet hotspots ----------------
+  // We overlay thin/small transparent zones on the gridlines between number
+  // cells. Each zone is a real, focusable bet element registered in cellByKey
+  // so it gets win-highlighting and chip rendering exactly like a cell.
+  //
+  // Geometry is read from the live grid (cell.offsetLeft/Top/Width/Height,
+  // relative to the position:relative .bet-grid). The *covered numbers* come
+  // straight from RouletteCore's geometry helpers so they can never drift from
+  // the resolver's own definitions.
+  //
+  // Key scheme (chosen to be deterministic and tied to the numbers, so
+  // highlightWinners — which matches winning bets by key — lights the right
+  // zone):
+  //   split:a-b   a<b           e.g. "split:1-2", "split:1-4", "split:0-1"
+  //   street:c    c=colPos 1-12 e.g. "street:1"  -> [1,2,3]
+  //   corner:tl   tl=block min  e.g. "corner:1"  -> [1,2,4,5]
+  //   line:c      c=start 1-11  e.g. "line:1"    -> [1,2,3,4,5,6]
+  //   basket                    -> [0,1,2,3] (first four)
+
+  // grid-position lookups for a number cell (filled by buildGrid)
+  function posOf(n) { return numberCells.get(n); }
+
+  function makeHotspot(spec) {
+    // spec: { key, label, bet, place(el) -> sets geometry; recompute fn }
+    const el = document.createElement("div");
+    el.className = "hotspot";
+    el.dataset.key = spec.key;
+    el.setAttribute("role", "button");
+    el.setAttribute("tabindex", "0");
+    el.setAttribute("aria-label", spec.label);
+    el.title = spec.label;
+    el.addEventListener("click", () => placeBet(spec.bet, spec.key, el));
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        placeBet(spec.bet, spec.key, el);
+      }
+    });
+    el.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      removeChipFrom(spec.key);
+    });
+    cellByKey.set(spec.key, el);
+    betGridEl.appendChild(el);
+    const hs = { el, spec };
+    hotspots.push(hs);
+    return hs;
+  }
+
+  // Rectangle (relative to .bet-grid) for a number's cell.
+  function rectOf(n) {
+    const info = numberCells.get(n);
+    if (!info) return null;
+    const el = info.el;
+    return {
+      left: el.offsetLeft,
+      top: el.offsetTop,
+      width: el.offsetWidth,
+      height: el.offsetHeight,
+      right: el.offsetLeft + el.offsetWidth,
+      bottom: el.offsetTop + el.offsetHeight,
+      cx: el.offsetLeft + el.offsetWidth / 2,
+      cy: el.offsetTop + el.offsetHeight / 2,
+    };
+  }
+
+  // Hit-area sizing. Coarse pointers get fatter zones for easier tapping.
+  function hotspotThickness() {
+    return window.matchMedia("(hover: none), (pointer: coarse)").matches ? 22 : 16;
+  }
+
+  // Position every hotspot from current cell geometry. Re-run on resize.
+  function positionHotspots() {
+    const t = hotspotThickness();
+    const corner = Math.max(t, 20); // corner/line clickable square side
+    hotspots.forEach(({ el, spec }) => spec.place(el, t, corner));
+  }
+
+  function buildHotspots() {
+    // ---- SPLITS ----------------------------------------------------------
+    // Enumerate neighbour pairs from grid geometry. Two number cells are
+    // neighbours when they touch on the grid: same gridRow & adjacent gridCol
+    // (vertical border) OR same gridCol & adjacent gridRow (horizontal border).
+    for (let n = 1; n <= 36; n++) {
+      const a = posOf(n);
+      for (let m = n + 1; m <= 36; m++) {
+        const b = posOf(m);
+        const sameRow = a.gridRow === b.gridRow;
+        const sameCol = a.gridCol === b.gridCol;
+        const adjCol = Math.abs(a.gridCol - b.gridCol) === 1;
+        const adjRow = Math.abs(a.gridRow - b.gridRow) === 1;
+        const verticalBorder = sameRow && adjCol;   // side-by-side cells, e.g. 1&4
+        const horizontalBorder = sameCol && adjRow; // stacked cells,      e.g. 1&2
+        if (!verticalBorder && !horizontalBorder) continue;
+        const nums = splitNumbers(n, m); // cross-check with core; null if not legal
+        if (!nums) continue;
+        const lo = nums[0], hi = nums[1];
+        const key = "split:" + lo + "-" + hi;
+        makeHotspot({
+          key,
+          label: "Split " + lo + " and " + hi,
+          bet: { type: "split", numbers: nums },
+          place: (el, t) => {
+            const ra = rectOf(lo), rb = rectOf(hi);
+            if (verticalBorder) {
+              // boundary x = midpoint between the two cells' touching edges
+              const x = (Math.min(ra.right, rb.right) + Math.max(ra.left, rb.left)) / 2;
+              const top = Math.min(ra.top, rb.top);
+              const h = Math.max(ra.bottom, rb.bottom) - top;
+              el.style.left = (x - t / 2) + "px";
+              el.style.top = top + "px";
+              el.style.width = t + "px";
+              el.style.height = h + "px";
+            } else {
+              // horizontal border: boundary y between stacked cells
+              const y = (Math.min(ra.bottom, rb.bottom) + Math.max(ra.top, rb.top)) / 2;
+              const left = Math.min(ra.left, rb.left);
+              const w = Math.max(ra.right, rb.right) - left;
+              el.style.left = left + "px";
+              el.style.top = (y - t / 2) + "px";
+              el.style.width = w + "px";
+              el.style.height = t + "px";
+            }
+          },
+        });
+      }
+    }
+
+    // ---- ZERO SPLITS (0&1, 0&2, 0&3) ------------------------------------
+    [1, 2, 3].forEach((hi) => {
+      const nums = splitNumbers(0, hi);
+      if (!nums) return;
+      const key = "split:0-" + hi;
+      makeHotspot({
+        key,
+        label: "Split 0 and " + hi,
+        bet: { type: "split", numbers: nums },
+        place: (el, t) => {
+          const rz = rectOf(0), rn = rectOf(hi);
+          // vertical border between zero (left) and the number cell (right)
+          const x = (rz.right + rn.left) / 2;
+          el.style.left = (x - t / 2) + "px";
+          el.style.top = rn.top + "px";
+          el.style.width = t + "px";
+          el.style.height = rn.height + "px";
+        },
+      });
+    });
+
+    // ---- STREETS (outer bottom edge of each column-of-3) -----------------
+    for (let c = 1; c <= 12; c++) {
+      const nums = streetNumbers(c); // [3c-2, 3c-1, 3c]
+      const bottomNum = nums[0];     // bottom row member (gridRow 3)
+      const key = "street:" + c;
+      makeHotspot({
+        key,
+        label: "Street " + nums.join(", "),
+        bet: { type: "street", numbers: nums },
+        place: (el, t) => {
+          const r = rectOf(bottomNum);
+          el.style.left = r.left + "px";
+          el.style.top = (r.bottom - t / 2) + "px";
+          el.style.width = r.width + "px";
+          el.style.height = t + "px";
+        },
+      });
+    }
+
+    // ---- CORNERS (point where four cells meet) ---------------------------
+    // The four-cell block's smallest number is the bottom-left. Place a small
+    // square centered on the top-right corner of that bottom-left cell, which
+    // is exactly where all four cells touch.
+    for (let tl = 1; tl <= 36; tl++) {
+      const nums = cornerNumbers(tl);
+      if (!nums) continue; // not a valid 2x2 anchor
+      const key = "corner:" + tl;
+      makeHotspot({
+        key,
+        label: "Corner " + nums.join(", "),
+        bet: { type: "corner", numbers: nums },
+        place: (el, t, corner) => {
+          const r = rectOf(tl); // bottom-left cell of the block
+          // shared point: cell's right edge, cell's top edge
+          const px = r.right;
+          const py = r.top;
+          el.style.left = (px - corner / 2) + "px";
+          el.style.top = (py - corner / 2) + "px";
+          el.style.width = corner + "px";
+          el.style.height = corner + "px";
+        },
+      });
+    }
+
+    // ---- LINES / six-line (outer bottom edge between two streets) --------
+    for (let c = 1; c <= 11; c++) {
+      const nums = lineNumbers(c); // [3c-2 .. 3c+3]
+      const leftBottom = streetNumbers(c)[0];      // bottom cell of left street
+      const rightBottom = streetNumbers(c + 1)[0]; // bottom cell of right street
+      const key = "line:" + c;
+      makeHotspot({
+        key,
+        label: "Six line " + nums[0] + " to " + nums[5],
+        bet: { type: "line", numbers: nums },
+        place: (el, t) => {
+          const rl = rectOf(leftBottom), rr = rectOf(rightBottom);
+          // x at the shared vertical boundary between the two streets, y on the
+          // outer bottom edge of the bottom row.
+          const x = (rl.right + rr.left) / 2;
+          const top = Math.max(rl.bottom, rr.bottom) - t / 2;
+          el.style.left = (x - t / 2) + "px";
+          el.style.top = top + "px";
+          el.style.width = t + "px";
+          el.style.height = t + "px";
+        },
+      });
+    }
+
+    // ---- BASKET / first four (0,1,2,3) -----------------------------------
+    // Where zero's right edge meets the bottom street boundary of column 1.
+    {
+      const key = "basket";
+      makeHotspot({
+        key,
+        label: "First four 0, 1, 2, 3",
+        bet: { type: "corner", numbers: [0, 1, 2, 3] },
+        place: (el, t, corner) => {
+          const rz = rectOf(0), r1 = rectOf(1);
+          const px = (rz.right + r1.left) / 2; // boundary between zero and col 1
+          const py = r1.bottom;                // outer bottom edge
+          el.style.left = (px - corner / 2) + "px";
+          el.style.top = (py - corner / 2) + "px";
+          el.style.width = corner + "px";
+          el.style.height = corner + "px";
+        },
+      });
+    }
+
+    positionHotspots();
+    // Reposition when the layout reflows (responsive breakpoints, rotation).
+    window.addEventListener("resize", positionHotspots);
   }
 
   function buildOutside() {
@@ -204,7 +459,9 @@
   }
 
   function clearWinHighlights() {
-    document.querySelectorAll(".cell.winning").forEach((c) => c.classList.remove("winning"));
+    document
+      .querySelectorAll(".cell.winning, .hotspot.winning")
+      .forEach((c) => c.classList.remove("winning"));
   }
 
   function renderChipOn(el, key) {
@@ -217,10 +474,15 @@
     }
     chip.textContent = bet ? bet.amount : "";
     if (!bet && chip) chip.remove();
+    // hotspots get a subtle "occupied" tint while they carry a chip
+    if (el.classList.contains("hotspot")) {
+      el.classList.toggle("has-chip", !!bet);
+    }
   }
 
   function clearChipEls() {
     document.querySelectorAll(".bet-chip").forEach((c) => c.remove());
+    document.querySelectorAll(".hotspot.has-chip").forEach((h) => h.classList.remove("has-chip"));
   }
 
   function totalStaked() {
@@ -651,8 +913,12 @@
   // ---------------- Init ----------------
   buildChips();
   buildGrid();
+  buildHotspots();
   buildOutside();
   drawWheel();
   updateBank();
   flash("Pick a chip, place your bets, then SPIN. Single-zero European wheel.");
+  // Re-measure once the grid has fully laid out (fonts, flexible columns).
+  requestAnimationFrame(positionHotspots);
+  window.addEventListener("load", positionHotspots);
 })();

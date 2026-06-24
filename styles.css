@@ -130,6 +130,7 @@ body {
   grid-template-columns: 46px repeat(12, 1fr) 46px;
   grid-template-rows: repeat(3, 46px);
   gap: 3px;
+  position: relative; /* anchor for absolutely-positioned adjacency hotspots */
 }
 .cell {
   position: relative;
@@ -152,6 +153,42 @@ body {
 .outside .cell.dozen { grid-column: span 2; }
 .outside .cell.swatch-red { background: var(--red); }
 .outside .cell.swatch-black { background: var(--black); }
+
+/* ---------------- Adjacency bet hotspots (split / street / corner / line) ---- */
+/* Thin transparent zones overlaid on the gridlines between number cells. They
+   sit ABOVE the cells so clicks land on the border bet, and carry their own
+   chip just like a normal cell. */
+.hotspot {
+  position: absolute;
+  z-index: 4;
+  cursor: pointer;
+  border-radius: 3px;
+  background: transparent;
+  transition: background .1s, box-shadow .1s;
+  /* center any rendered chip on the hotspot */
+  display: flex; align-items: center; justify-content: center;
+}
+.hotspot:hover,
+.hotspot:focus-visible {
+  background: rgba(231, 200, 115, .45);
+  box-shadow: 0 0 0 1px rgba(231, 200, 115, .9);
+  outline: none;
+}
+.hotspot.has-chip { background: rgba(231, 200, 115, .18); }
+/* a hotspot that is part of the winning bet rings gold like a cell */
+.hotspot.winning {
+  background: rgba(231, 200, 115, .35);
+  box-shadow: 0 0 0 3px var(--gold), 0 0 14px 3px rgba(231, 200, 115, .85);
+  z-index: 5;
+  animation: winPulse 1.4s ease infinite;
+}
+/* chips placed on hotspots are not centered via cell flow — keep them centered
+   on the hotspot itself (override the absolute centering used on cells). */
+.hotspot .bet-chip {
+  position: static;
+  transform: none;
+  top: auto; left: auto;
+}
 
 /* chip stack rendered on a bet cell */
 .bet-chip {
@@ -248,4 +285,10 @@ body {
   .outside .cell { height: 36px; font-size: 11px; }
   .bet-chip { width: 20px; height: 20px; font-size: 9px; }
   .chip { width: 42px; height: 42px; }
+}
+
+/* On touch / coarse pointers, make the hotspots easier to hit. The JS reads
+   this hint (via a data attribute on the grid) to inflate hit areas. */
+@media (hover: none), (pointer: coarse) {
+  .hotspot { background: rgba(231, 200, 115, .12); }
 }

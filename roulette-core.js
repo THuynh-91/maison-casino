@@ -130,6 +130,94 @@
     };
   }
 
+  // ---- Board geometry helpers (3 rows x 12 columns, European single-zero) ----
+  // Layout: column-position c = ceil(n/3) (1..12). Within a column the three
+  // numbers are 3c-2 (bottom), 3c-1 (middle), 3c (top). The printed row index
+  // (0=bottom,1=middle,2=top) is (n-1)%3 for 1..36.
+
+  function isOnBoard(n) {
+    return Number.isInteger(n) && n >= 1 && n <= 36;
+  }
+
+  // column-position 1..12 for a number 1..36
+  function columnPos(n) {
+    return Math.ceil(n / 3);
+  }
+
+  // row index 0..2 (0=bottom,1=middle,2=top) for a number 1..36
+  function rowIndex(n) {
+    return (n - 1) % 3;
+  }
+
+  /**
+   * splitNumbers(a, b): returns sorted [a,b] if a and b form a legal split
+   * (horizontal neighbours in the same row, vertical neighbours in the same
+   * column, or a zero-split [0,1]/[0,2]/[0,3]); otherwise null.
+   */
+  function splitNumbers(a, b) {
+    if (!Number.isInteger(a) || !Number.isInteger(b)) return null;
+    if (a === b) return null;
+    const lo = Math.min(a, b);
+    const hi = Math.max(a, b);
+    // Zero-splits: 0 with the bottom edge of the first column.
+    if (lo === 0) {
+      return hi === 1 || hi === 2 || hi === 3 ? [0, hi] : null;
+    }
+    if (!isOnBoard(lo) || !isOnBoard(hi)) return null;
+    // Vertical neighbours: same column-position, differ by 1.
+    if (columnPos(lo) === columnPos(hi) && hi - lo === 1) {
+      return [lo, hi];
+    }
+    // Horizontal neighbours: same printed row, adjacent columns (differ by 3).
+    if (rowIndex(lo) === rowIndex(hi) && hi - lo === 3) {
+      return [lo, hi];
+    }
+    return null;
+  }
+
+  /**
+   * streetNumbers(row): the three numbers of the vertical street at
+   * column-position `row` (1..12). e.g. 1 -> [1,2,3], 12 -> [34,35,36].
+   * Returns null for out-of-range input.
+   */
+  function streetNumbers(row) {
+    if (!Number.isInteger(row) || row < 1 || row > 12) return null;
+    const base = (row - 1) * 3;
+    return [base + 1, base + 2, base + 3];
+  }
+
+  /**
+   * cornerNumbers(topLeft): the four numbers of a standard 2x2 block whose
+   * smallest member is `topLeft`. e.g. 1 -> [1,2,4,5], 2 -> [2,3,5,6].
+   * `topLeft` must be in the bottom or middle row (so a 2x2 block exists above
+   * it) and not in the last column (so a block exists to the right).
+   * Returns null otherwise.
+   */
+  function cornerNumbers(topLeft) {
+    if (!isOnBoard(topLeft)) return null;
+    // Must have a number directly above it in the same column.
+    if (rowIndex(topLeft) === 2) return null; // top row has nothing above
+    // Must not be in the last column (12) so the next column exists.
+    if (columnPos(topLeft) >= 12) return null;
+    const a = topLeft; // bottom-left of block
+    const b = topLeft + 1; // directly above
+    const c = topLeft + 3; // bottom-right (next column)
+    const d = topLeft + 4; // top-right
+    return [a, b, c, d].sort((x, y) => x - y);
+  }
+
+  /**
+   * lineNumbers(row): the six numbers spanning two adjacent streets starting at
+   * column-position `row` (1..11). e.g. 1 -> [1..6], 11 -> [31..36].
+   * Returns null for out-of-range input.
+   */
+  function lineNumbers(row) {
+    if (!Number.isInteger(row) || row < 1 || row > 11) return null;
+    const first = streetNumbers(row);
+    const second = streetNumbers(row + 1);
+    return first.concat(second);
+  }
+
   // Cryptographically-unbiased-ish spin in [0,36]. Uses crypto when available.
   function spinResult() {
     const max = 37;
@@ -156,5 +244,9 @@
     betWins,
     resolveBets,
     spinResult,
+    splitNumbers,
+    streetNumbers,
+    cornerNumbers,
+    lineNumbers,
   };
 });
