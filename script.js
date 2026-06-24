@@ -400,11 +400,23 @@
   const R = canvas.width / 2;
   const N = WHEEL_ORDER.length; // 37
   const seg = (2 * Math.PI) / N;
-  let wheelAngle = 0; // rotation of the wheel
-  let ballAngle = -Math.PI / 2; // ball position (screen angle)
+  let wheelAngle = 0; // rotation of the wheel (radians)
+  // Ball state, expressed in SCREEN space.
+  let ballAngle = -Math.PI / 2; // ball angular position on its orbit (screen angle)
+  let ballRadius = R - 18;      // current orbit radius (distance from center)
+
+  // Geometry constants for the ball's orbit / drop.
+  const RIM_RADIUS = R - 10;        // outer track the ball starts on
+  const POCKET_RADIUS = R - 26;     // radius at which the ball rests inside a pocket
+  const BALL_SIZE = 6.5;
 
   function pocketColor(n) {
     return colorOf(n) === "red" ? "#c1121f" : colorOf(n) === "black" ? "#1a1a1a" : "#0a6b3b";
+  }
+
+  // Screen-space angle of the CENTER of pocket index `idx` given current wheelAngle.
+  function pocketScreenAngle(idx) {
+    return idx * seg - Math.PI / 2 + wheelAngle;
   }
 
   function drawWheel() {
@@ -412,9 +424,13 @@
     ctx.save();
     ctx.translate(R, R);
 
-    // outer rim
+    // outer ball track (the lip the ball rolls on)
     ctx.beginPath();
     ctx.arc(0, 0, R - 2, 0, 2 * Math.PI);
+    ctx.fillStyle = "#241708";
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(0, 0, R - 8, 0, 2 * Math.PI);
     ctx.fillStyle = "#3a2a12";
     ctx.fill();
 
@@ -432,6 +448,13 @@
       ctx.strokeStyle = "rgba(231,200,115,.6)";
       ctx.lineWidth = 1;
       ctx.stroke();
+
+      // fret (divider) between pockets, drawn as a small raised tick
+      ctx.save();
+      ctx.rotate(start);
+      ctx.fillStyle = "rgba(231,200,115,.85)";
+      ctx.fillRect(R - 16, -1, 14, 2);
+      ctx.restore();
 
       // number label
       ctx.save();
@@ -461,67 +484,154 @@
     ctx.stroke();
     ctx.restore();
 
-    // ball (drawn in screen space, not rotated with wheel)
-    const br = R - 22;
-    const bx = R + br * Math.cos(ballAngle);
-    const by = R + br * Math.sin(ballAngle);
+    // ball (drawn in screen space; angle & radius are animated)
+    const bx = R + ballRadius * Math.cos(ballAngle);
+    const by = R + ballRadius * Math.sin(ballAngle);
+    // subtle drop shadow toward center for depth
     ctx.beginPath();
-    ctx.arc(bx, by, 7, 0, 2 * Math.PI);
-    ctx.fillStyle = "#fff";
+    ctx.arc(bx, by, BALL_SIZE, 0, 2 * Math.PI);
+    const grad = ctx.createRadialGradient(
+      bx - 2, by - 2, 0.5,
+      bx, by, BALL_SIZE
+    );
+    grad.addColorStop(0, "#ffffff");
+    grad.addColorStop(1, "#c9c9c9");
+    ctx.fillStyle = grad;
     ctx.fill();
-    ctx.strokeStyle = "#000";
+    ctx.strokeStyle = "rgba(0,0,0,.5)";
     ctx.lineWidth = 1;
     ctx.stroke();
   }
 
-  function easeOut(t) {
+  function easeOutCubic(t) {
     return 1 - Math.pow(1 - t, 3);
   }
+  function clamp01(t) {
+    return t < 0 ? 0 : t > 1 ? 1 : t;
+  }
 
-  // Animate so the ball ends in the pocket of `result`.
+  // Animate a physical-looking spin that ends with the ball resting in the
+  // pocket of `result`, with that pocket under the top pointer.
   function spinTo(result, done) {
     spinning = true;
     updateControls();
     resultBanner.classList.add("hidden");
 
     const idx = WHEEL_ORDER.indexOf(result);
-    // Final screen angle where the winning pocket should sit (top, -PI/2).
-    // wheelAngle rotates pockets; pocket idx center on screen = idx*seg - PI/2 + wheelAngle.
-    // We want the ball at -PI/2 to align with pocket idx => wheelAngle_final places pocket idx at top.
+
+    // --- Wheel motion: spins clockwise (positive), decelerating (ease-out). ---
     const wheelStart = wheelAngle;
-    const wheelSpins = 6 * 2 * Math.PI;
-    // target wheelAngle so pocket idx ends at top (-PI/2):
-    const targetPocketAngle = -idx * seg; // brings pocket idx to the top reference
-    const wheelEnd = wheelStart + wheelSpins + ((targetPocketAngle - wheelStart) % (2 * Math.PI));
+    // Final wheelAngle must place pocket idx at the top pointer (-PI/2):
+    //   pocketScreenAngle(idx) === -PI/2  =>  idx*seg - PI/2 + wheelAngle === -PI/2 (mod 2PI)
+    //   => wheelAngle === -idx*seg (mod 2PI)
+    const wheelRevs = 5; // full turns before settling
+    const desiredFinalMod = (((-idx * seg) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+    let curMod = ((wheelStart % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+    let delta = desiredFinalMod - curMod;
+    if (delta < 0) delta += 2 * Math.PI; // always move forward (clockwise)
+    const wheelEnd = wheelStart + wheelRevs * 2 * Math.PI + delta;
 
+    // --- Ball motion: orbits OPPOSITE direction (negative/counter-clockwise),
+    //     faster, then spirals inward and drops into the pocket. ---
     const ballStart = ballAngle;
-    const ballSpins = -10 * 2 * Math.PI; // ball spins opposite direction
-    const ballEnd = -Math.PI / 2; // settle at top
-    const ballTarget = ballStart + ballSpins + (((ballEnd - ballStart) % (2 * Math.PI)) - 2 * Math.PI);
+    // The ball should END exactly at the pocket's screen angle. Since the pocket
+    // ends at the top (-PI/2), the ball settles there too — but we drive it by the
+    // pocket's screen position throughout the settle so it visibly sits in-pocket.
+    const ballRevs = 9; // counter-clockwise revolutions (negative direction)
+    // Land target measured against the FINAL pocket position (top). Add extra
+    // negative turns so direction is opposite the wheel.
+    const ballSettleAngle = -Math.PI / 2; // top, where pocket idx will be
+    let ballRaw = ballSettleAngle - ballStart;
+    // normalize into (-2PI, 0] so motion is counter-clockwise, then add full revs
+    ballRaw = ((ballRaw % (2 * Math.PI)) - 2 * Math.PI) % (2 * Math.PI);
+    const ballEnd = ballStart - ballRevs * 2 * Math.PI + ballRaw;
 
-    const duration = 4200;
+    const startRadius = RIM_RADIUS;
+    ballRadius = startRadius;
+
+    const duration = 6000;          // ~6s spin
+    const spiralStart = 0.55;       // when the ball begins spiraling inward
+    const dropStart = 0.82;         // when the ball drops onto the pocket ring
     const t0 = performance.now();
 
     function frame(now) {
-      const p = Math.min((now - t0) / duration, 1);
-      const e = easeOut(p);
+      const p = clamp01((now - t0) / duration);
+      const e = easeOutCubic(p);
+
+      // Wheel: smooth ease-out the whole way.
       wheelAngle = wheelStart + (wheelEnd - wheelStart) * e;
-      ballAngle = ballStart + (ballTarget - ballStart) * e;
+
+      if (p < dropStart) {
+        // Phase 1+2: ball orbits freely; radius shrinks (spiral) after spiralStart.
+        ballAngle = ballStart + (ballEnd - ballStart) * e;
+        let rT = clamp01((p - spiralStart) / (dropStart - spiralStart));
+        rT = easeOutCubic(rT);
+        ballRadius = startRadius + (POCKET_RADIUS + 4 - startRadius) * rT;
+      } else {
+        // Phase 3: ball is captured by pocket idx. Lock its angle to the pocket's
+        // screen angle so it rotates WITH the wheel, add a small rattle, and drop
+        // the last few px into the pocket.
+        const dT = clamp01((p - dropStart) / (1 - dropStart));
+        const de = easeOutCubic(dT);
+        const pocketAng = pocketScreenAngle(idx);
+        // rattle: a damped wobble around the pocket center that dies out
+        const rattle = (1 - dT) * 0.06 * Math.sin(dT * Math.PI * 7);
+        ballAngle = pocketAng + rattle;
+        ballRadius = (POCKET_RADIUS + 4) + (POCKET_RADIUS - (POCKET_RADIUS + 4)) * de;
+      }
+
       drawWheel();
+
       if (p < 1) {
         requestAnimationFrame(frame);
       } else {
-        // snap exactly so the result pocket is under the ball at top
-        wheelAngle = targetPocketAngle;
-        ballAngle = -Math.PI / 2;
+        // Snap exactly so the result pocket sits under the pointer with the ball in it.
+        wheelAngle = wheelStart + (wheelEnd - wheelStart); // == wheelEnd
+        ballAngle = pocketScreenAngle(idx); // == -PI/2 (top)
+        ballRadius = POCKET_RADIUS;
         drawWheel();
         spinning = false;
         resultBanner.classList.remove("hidden");
+        // Debug hook (used by tests/tools): which pocket is currently under the
+        // top pointer, and where the ball sits. Harmless in production.
+        window.__rouletteDebug = {
+          wheelAngle,
+          ballAngle,
+          ballRadius,
+          pocketUnderPointer: pocketUnderPointer(),
+          ballPocket: ballPocketIndex(),
+          result,
+        };
         done();
         updateControls();
       }
     }
     requestAnimationFrame(frame);
+  }
+
+  // Index of the pocket whose center is nearest the top pointer (-PI/2).
+  function pocketUnderPointer() {
+    let best = 0, bestD = Infinity;
+    for (let i = 0; i < N; i++) {
+      let d = Math.abs(angDiff(pocketScreenAngle(i), -Math.PI / 2));
+      if (d < bestD) { bestD = d; best = i; }
+    }
+    return WHEEL_ORDER[best];
+  }
+  // Index of the pocket the ball currently sits over (by angle).
+  function ballPocketIndex() {
+    let best = 0, bestD = Infinity;
+    for (let i = 0; i < N; i++) {
+      let d = Math.abs(angDiff(pocketScreenAngle(i), ballAngle));
+      if (d < bestD) { bestD = d; best = i; }
+    }
+    return WHEEL_ORDER[best];
+  }
+  function angDiff(a, b) {
+    let d = (a - b) % (2 * Math.PI);
+    if (d > Math.PI) d -= 2 * Math.PI;
+    if (d < -Math.PI) d += 2 * Math.PI;
+    return d;
   }
 
   // ---------------- Init ----------------
