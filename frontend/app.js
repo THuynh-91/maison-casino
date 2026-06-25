@@ -582,3 +582,15 @@
   socket.connect();
   renderLobby();
 })();
+
+// ---- keep-alive --------------------------------------------------------
+// The free-tier host sleeps after ~15 min idle. While this tab is open, ping
+// the server's /healthz every 10 min so it stays warm during a session.
+(function keepAlive() {
+  const PING_INTERVAL = 10 * 60 * 1000; // 10 minutes
+  function ping() {
+    fetch("/healthz", { cache: "no-store" }).catch(() => {});
+  }
+  ping();
+  setInterval(ping, PING_INTERVAL);
+})();
